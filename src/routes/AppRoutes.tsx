@@ -91,7 +91,7 @@ export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Landing Page (accessible to both guest and authenticated users) */}
+      {/* Public Landing Page */}
       <Route path="/" element={<LandingPage />} />
 
       {/* Public Documentation & FAQ Page */}
@@ -107,7 +107,6 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-
       {/* Protected Main Application Routes wrapped in MainLayout */}
       <Route
         element={
@@ -116,19 +115,198 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPlaceholder />} />
-        <Route path="/customers" element={<DashboardPlaceholder />} />
-        <Route path="/accounts" element={<DashboardPlaceholder />} />
-        <Route path="/transactions" element={<DashboardPlaceholder />} />
-        <Route path="/loans" element={<DashboardPlaceholder />} />
-        <Route path="/branches" element={<DashboardPlaceholder />} />
-        <Route path="/users" element={<DashboardPlaceholder />} />
-        <Route path="/alerts" element={<DashboardPlaceholder />} />
-        <Route path="/audit-logs" element={<DashboardPlaceholder />} />
-        <Route path="/reports" element={<DashboardPlaceholder />} />
-        <Route path="/risk-analysis" element={<DashboardPlaceholder />} />
+        {/* Core Dashboard: dynamically renders Admin, Manager, Compliance, Analyst, CSR, or Auditor view */}
+        <Route path="/dashboard" element={<RoleDashboard />} />
+
+        {/* Core Banking Modules */}
+        <Route
+          path="/customers"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <CustomerListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customers/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <CustomerDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accounts"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <AccountListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accounts/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <AccountDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <TransactionListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transactions/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <TransactionDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/loans"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <LoanListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/loans/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor']}>
+              <LoanDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Operations & Management */}
+        <Route
+          path="/branches"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'analyst', 'auditor', 'compliance']}>
+              <BranchListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/branches/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'analyst', 'auditor', 'compliance']}>
+              <BranchDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <UserListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <UserDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Risk & Audit */}
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']}>
+              <AlertListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']}>
+              <AlertDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts/kyc"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']}>
+              <KycQueuePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/kyc-queue"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']}>
+              <KycQueuePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts/aml"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'analyst', 'auditor']}>
+              <AmlDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/aml-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'compliance', 'analyst', 'auditor']}>
+              <AmlDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'compliance', 'auditor']}>
+              <DashboardPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Analytics & Insights */}
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager', 'analyst', 'auditor', 'compliance']}>
+              <ReportsDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/risk-analysis"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'analyst', 'compliance', 'auditor', 'manager']}>
+              <ReportsDashboardPage defaultTab="risk" />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Profile & System Configuration */}
         <Route path="/profile" element={<DashboardPlaceholder />} />
-        <Route path="/settings" element={<DashboardPlaceholder />} />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <DashboardPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 403 Forbidden Feedback Route */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
       </Route>
 
       {/* Default Catch-all Redirect */}
@@ -136,5 +314,3 @@ export const AppRoutes: React.FC = () => {
     </Routes>
   )
 }
-
-
