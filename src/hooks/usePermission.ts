@@ -44,6 +44,12 @@ export function usePermission() {
     // Administration & Users
     canManageUsers: hasRole('admin'),
     canManageBranches: hasRole('admin'),
+    canManageSettings: hasRole('admin'),
+
+    // Reports & Analytics
+    canViewReports: hasAnyRole(['admin', 'manager', 'analyst']),
+    canViewRiskAnalysis: hasAnyRole(['admin', 'analyst']),
+    canExportReports: hasAnyRole(['admin', 'manager', 'analyst', 'auditor']),
 
     // Auditing & Investigations
     canAccessAuditLogs: hasAnyRole(['admin', 'auditor', 'compliance']),
@@ -51,3 +57,8 @@ export function usePermission() {
     isReadOnly: hasRole('auditor'),
   }
 }
+
+export type PermissionKey = keyof Omit<
+  ReturnType<typeof usePermission>,
+  'role' | 'can' | 'hasRole' | 'hasAnyRole'
+>
