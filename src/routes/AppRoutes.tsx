@@ -6,18 +6,43 @@ import { MainLayout } from '@/layouts/MainLayout'
 import { LandingPage } from '@/pages/landing/LandingPage'
 import { DocsPage } from '@/pages/docs/DocsPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { UnauthorizedPage } from '@/pages/auth/UnauthorizedPage'
+import { RoleDashboard } from '@/pages/dashboard/RoleDashboard'
 import { DashboardPlaceholder } from '@/components/common/DashboardPlaceholder'
+import { UserListPage } from '@/pages/users/UserListPage'
+import { UserDetailPage } from '@/pages/users/UserDetailPage'
+import { CustomerListPage } from '@/pages/customers/CustomerListPage'
+import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage'
+import { AccountListPage } from '@/pages/accounts/AccountListPage'
+import { AccountDetailPage } from '@/pages/accounts/AccountDetailPage'
+import { TransactionListPage } from '@/pages/transactions/TransactionListPage'
+import { TransactionDetailPage } from '@/pages/transactions/TransactionDetailPage'
+import { LoanListPage } from '@/pages/loans/LoanListPage'
+import { LoanDetailPage } from '@/pages/loans/LoanDetailPage'
+import { AlertListPage } from '@/pages/alerts/AlertListPage'
+import { AlertDetailPage } from '@/pages/alerts/AlertDetailPage'
+import { KycQueuePage } from '@/pages/alerts/KycQueuePage'
+import { AmlDashboardPage } from '@/pages/alerts/AmlDashboardPage'
+import { BranchListPage } from '@/pages/branches/BranchListPage'
+import { BranchDetailPage } from '@/pages/branches/BranchDetailPage'
+import { ReportsDashboardPage } from '@/pages/reports/ReportsDashboardPage'
 
 interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
+  redirectTo?: string
   children?: React.ReactNode
 }
 
 /**
  * Logical Route Guard for Authenticated / Protected Routes
- * Handles initialization, authentication checks, and role restrictions with zero UI rendering.
+ * Handles initialization, authentication checks, and role restrictions.
+ * If user lacks required role, redirects to /unauthorized (or custom redirectTo).
  */
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  allowedRoles,
+  redirectTo = '/unauthorized',
+  children,
+}) => {
   const { isAuthenticated, isInitialized, user, hasAnyRole } = useAuth()
   const location = useLocation()
 
@@ -30,7 +55,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, ch
   }
 
   if (allowedRoles && allowedRoles.length > 0 && !hasAnyRole(allowedRoles)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   return children ? <>{children}</> : <Outlet />
