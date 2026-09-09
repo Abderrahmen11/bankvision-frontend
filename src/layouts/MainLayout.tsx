@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
@@ -48,6 +49,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="bankvision-app-layout">
+      <Toaster position="top-right" />
       {/* Sidebar Navigation */}
       <Sidebar
         isCollapsed={isCollapsed}
