@@ -1,4 +1,4 @@
-import type { User } from './user'
+import type { User } from '@/shared/types/user'
 
 export type AlertType =
   | 'kyc_expiring'

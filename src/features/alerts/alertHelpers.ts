@@ -1,5 +1,5 @@
-import type { AlertType, AlertSeverity, AlertStatus, Alert } from '@/types/alert'
-import type { UserRole } from '@/types/user'
+import type { AlertType, AlertSeverity, AlertStatus, Alert } from '@/features/alerts/types'
+import type { UserRole } from '@/shared/types/user'
 
 // ---------------------------------------------------------------------------
 // RBAC Guards
