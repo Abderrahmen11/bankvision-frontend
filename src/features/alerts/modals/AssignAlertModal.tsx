@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { X, Search, UserCheck, Loader2 } from 'lucide-react'
-import { usersApi } from '@/api/users'
-import type { Alert } from '@/types/alert'
-import type { User } from '@/types/user'
-import { alertsApi } from '@/api/alerts'
-import '../AlertManagement.css'
+import { X, Search, UserCheck, Loader2, Building2, Shield } from 'lucide-react'
+import { usersApi } from '@/features/users/api/users'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { Alert } from '@/features/alerts/types'
+import type { User, UserRole } from '@/shared/types/user'
+import { ROLE_CONFIGS } from '@/shared/types/user'
+import { alertsApi } from '@/features/alerts/api/alerts'
+import '../pages/AlertManagement.css'
+
+const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']
 
 interface AssignAlertModalProps {
   alert: Alert
@@ -18,6 +22,9 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
   onSuccess,
 }) => {
   const [search, setSearch] = useState('')
+  const [branchId, setBranchId] = useState<string>('')
+  const [role, setRole] = useState<string>('')
+  const [branches, setBranches] = useState<Array<{ id: number; branch_name: string }>>([])
   const [results, setResults] = useState<User[]>([])
   const [selected, setSelected] = useState<User | null>(alert.assigned_to ?? null)
   const [loading, setLoading] = useState(false)
@@ -25,11 +32,27 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchUsers = useCallback(async (q: string) => {
+  // Branch options for the filter dropdown
+  useEffect(() => {
+    branchesApi
+      .list()
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : (res?.data ?? [])
+        setBranches(list.filter((b: any) => b && b.id != null))
+      })
+      .catch(() => setBranches([]))
+  }, [])
+
+  const fetchUsers = useCallback(async (q: string, branch: string, roleFilter: string) => {
     setLoading(true)
     try {
-      const res = await usersApi.list({ search: q, per_page: 20 })
-      setResults(Array.isArray(res.data) ? res.data : (res as any).data?.data ?? [])
+      const res = await usersApi.list({
+        search: q || undefined,
+        branch_id: branch || undefined,
+        role: roleFilter || undefined,
+        per_page: 20,
+      })
+      setResults(Array.isArray(res.data) ? res.data : ((res as any).data?.data ?? []))
     } catch {
       setResults([])
     } finally {
@@ -39,11 +62,13 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchUsers(search), 320)
+    debounceRef.current = setTimeout(() => fetchUsers(search, branchId, role), 320)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [search, fetchUsers])
+  }, [search, branchId, role, fetchUsers])
+
+  const hasFilters = Boolean(search || branchId || role)
 
   const handleSubmit = async () => {
     if (!selected) {
@@ -78,7 +103,7 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
         <div className="al-modal-body">
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>
             Assigning <strong style={{ color: 'var(--primary-400)' }}>{alert.alert_number}</strong> to a staff member will set the status to{' '}
-            <strong>In Progress</strong>.
+            <strong>In Progress</strong>. The assignee is notified in-app and by email.
           </p>
 
           {/* Search */}
@@ -95,6 +120,63 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
             </div>
           </div>
 
+          {/* Branch & Role filters */}
+          <div className="al-form-group">
+            <label className="al-form-label">Filters</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="al-search-wrap" style={{ maxWidth: '100%' }}>
+                <Building2 size={15} className="al-search-icon" />
+                <select
+                  className="al-search-input"
+                  style={{ paddingLeft: 34 }}
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  aria-label="Filter by branch"
+                >
+                  <option value="">All Branches</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.branch_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="al-search-wrap" style={{ maxWidth: '100%' }}>
+                <Shield size={15} className="al-search-icon" />
+                <select
+                  className="al-search-input"
+                  style={{ paddingLeft: 34 }}
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  aria-label="Filter by role"
+                >
+                  <option value="">All Roles</option>
+                  {ASSIGNABLE_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_CONFIGS[r]?.label ?? r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {hasFilters && (
+              <button
+                type="button"
+                className="al-btn al-btn-ghost al-btn-sm"
+                style={{ alignSelf: 'flex-start', marginTop: 6 }}
+                onClick={() => {
+                  setSearch('')
+                  setBranchId('')
+                  setRole('')
+                }}
+              >
+                <X size={13} /> Clear filters
+              </button>
+            )}
+          </div>
+
           {/* Results */}
           <div className="al-search-results">
             {loading ? (
@@ -104,7 +186,7 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
               </div>
             ) : results.length === 0 ? (
               <div style={{ padding: '14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No staff found.
+                No staff match the current filters.
               </div>
             ) : (
               results.map((u) => (
@@ -133,7 +215,7 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
                   <div>
                     <div style={{ fontWeight: 600 }}>{u.name}</div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {u.email} · {u.role}
+                      {u.email} · {ROLE_CONFIGS[u.role as UserRole]?.label ?? u.role}
                     </div>
                   </div>
                   {selected?.id === u.id && (

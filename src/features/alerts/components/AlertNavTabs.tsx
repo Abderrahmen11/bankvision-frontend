@@ -1,7 +1,7 @@
+import { useAuth } from '@/shared/hooks'
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { ShieldAlert, UserCheck, Flame } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
 
 export const AlertNavTabs: React.FC = () => {
   const { user } = useAuth()
