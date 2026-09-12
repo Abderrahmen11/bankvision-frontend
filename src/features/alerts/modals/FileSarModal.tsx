@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { sarFilingsApi } from '@/features/alerts/api/sarFilings'
+import type { SarFiling, SarStatus } from '@/features/alerts/sarTypes'
 import {
   X,
   FileSpreadsheet,
@@ -6,18 +8,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 
-export interface SarFiling {
-  id: string
-  reference: string
-  customer_name: string
-  customer_number: string
-  category: string
-  amount: number
-  status: 'draft' | 'under_review' | 'filed' | 'escalated'
-  date: string
-  narrative: string
-  action_taken: string
-}
+export type { SarFiling }
 
 interface FileSarModalProps {
   onClose: () => void
@@ -39,13 +30,13 @@ export const FileSarModal: React.FC<FileSarModalProps> = ({ onClose, onSuccess }
   const [customerNumber, setCustomerNumber] = useState('')
   const [category, setCategory] = useState(CATEGORIES[0])
   const [amount, setAmount] = useState('')
-  const [status, setStatus] = useState<'draft' | 'under_review' | 'filed'>('under_review')
+  const [status, setStatus] = useState<SarStatus>('under_review')
   const [actionTaken, setActionTaken] = useState('Account Flagged & Monitoring Active')
   const [narrative, setNarrative] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!customerName.trim()) {
       setError('Please provide the subject customer name.')
@@ -63,24 +54,22 @@ export const FileSarModal: React.FC<FileSarModalProps> = ({ onClose, onSuccess }
     setSubmitting(true)
     setError(null)
 
-    // Simulate API persistence
-    setTimeout(() => {
-      const generatedRef = `SAR-2026-${Math.floor(100000 + Math.random() * 900000)}`
-      const newFiling: SarFiling = {
-        id: String(Date.now()),
-        reference: generatedRef,
-        customer_name: customerName,
-        customer_number: customerNumber || 'CUST-00' + Math.floor(100 + Math.random() * 900),
+    try {
+      const newFiling = await sarFilingsApi.create({
+        customer_name: customerName.trim(),
+        customer_number: customerNumber.trim() || undefined,
         category,
         amount: Number(amount),
         status,
-        date: new Date().toISOString().slice(0, 10),
-        narrative,
-        action_taken: actionTaken,
-      }
+        narrative: narrative.trim(),
+        action_taken: actionTaken.trim() || undefined,
+      })
       onSuccess(newFiling)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to record the SAR filing.')
+    } finally {
       setSubmitting(false)
-    }, 450)
+    }
   }
 
   return (
@@ -160,7 +149,7 @@ export const FileSarModal: React.FC<FileSarModalProps> = ({ onClose, onSuccess }
                 </select>
               </div>
               <div>
-                <label className="al-form-label">Suspicious Volume (USD) *</label>
+                <label className="al-form-label">Suspicious Volume *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -182,7 +171,7 @@ export const FileSarModal: React.FC<FileSarModalProps> = ({ onClose, onSuccess }
                   className="al-filter-select"
                   style={{ width: '100%' }}
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
+                  onChange={(e) => setStatus(e.target.value as SarStatus)}
                 >
                   <option value="under_review">Under Compliance Review</option>
                   <option value="draft">Internal Draft</option>
