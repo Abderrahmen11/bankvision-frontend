@@ -1,3 +1,5 @@
+import { formatMoney } from '@/shared/utils'
+import { useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -14,16 +16,16 @@ import {
   CheckCircle2,
   ExternalLink,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { dashboardApi } from '@/api/dashboard'
-import { customersApi } from '@/api/customers'
-import { transactionsApi } from '@/api/transactions'
-import { branchesApi } from '@/api/branches'
-import type { Customer } from '@/types/customer'
-import type { Transaction } from '@/types/transaction'
-import type { Branch } from '@/types/user'
-import { AlertNavTabs } from './components/AlertNavTabs'
-import { FileSarModal, type SarFiling } from './modals/FileSarModal'
+import { dashboardApi } from '@/features/dashboard'
+import { customersApi } from '@/features/customers/api/customers'
+import { transactionsApi } from '@/features/transactions/api/transactions'
+import { alertsApi } from '@/features/alerts/api/alerts'
+import { sarFilingsApi } from '@/features/alerts/api/sarFilings'
+import type { Customer } from '@/features/customers/types'
+import type { Transaction } from '@/features/transactions/types'
+import type { SarFiling } from '@/features/alerts/sarTypes'
+import { AlertNavTabs } from '../components/AlertNavTabs'
+import { FileSarModal } from '../modals/FileSarModal'
 import './AlertManagement.css'
 
 interface HeatmapBranchRisk {
@@ -35,45 +37,6 @@ interface HeatmapBranchRisk {
   totalCount: number
   riskScore: number // 0-100
 }
-
-const INITIAL_SAR_FILINGS: SarFiling[] = [
-  {
-    id: 'sar-1',
-    reference: 'SAR-2026-881920',
-    customer_name: 'Marcus Vance',
-    customer_number: 'CUST-0004',
-    category: 'Structuring / Smurfing (<$10k Cash)',
-    amount: 28500,
-    status: 'under_review',
-    date: '2026-09-06',
-    narrative: 'Three consecutive cash deposits of $9,500 made across multiple branch ATMs within 48 hours.',
-    action_taken: 'Account Flagged & CTR Exemption Checked',
-  },
-  {
-    id: 'sar-2',
-    reference: 'SAR-2026-773412',
-    customer_name: 'Apex Global Logistics LLC',
-    customer_number: 'CUST-0012',
-    category: 'Rapid Wire Movement / Pass-through Account',
-    amount: 145000,
-    status: 'filed',
-    date: '2026-09-02',
-    narrative: 'Inbound international wire immediately divided into 6 domestic transfers to unverified entities.',
-    action_taken: 'FinCEN BSA Form 111 Transmitted',
-  },
-  {
-    id: 'sar-3',
-    reference: 'SAR-2026-559102',
-    customer_name: 'Elena Rostova',
-    customer_number: 'CUST-0019',
-    category: 'PEP (Politically Exposed Person) Sanctions Check',
-    amount: 82000,
-    status: 'escalated',
-    date: '2026-08-28',
-    narrative: 'Secondary sanctions list match detected during automated nightly OFAC batch scan.',
-    action_taken: 'Accounts Frozen & Legal Notified',
-  },
-]
 
 export const AmlDashboardPage: React.FC = () => {
   const { user } = useAuth()
@@ -87,8 +50,8 @@ export const AmlDashboardPage: React.FC = () => {
   const [riskData, setRiskData] = useState<any>(null)
   const [highRiskCustomers, setHighRiskCustomers] = useState<Customer[]>([])
   const [flaggedTransactions, setFlaggedTransactions] = useState<Transaction[]>([])
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [sarFilings, setSarFilings] = useState<SarFiling[]>(INITIAL_SAR_FILINGS)
+  const [sarFilings, setSarFilings] = useState<SarFiling[]>([])
+  const [highSeverityAlerts, setHighSeverityAlerts] = useState(0)
   const [showSarModal, setShowSarModal] = useState(false)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -100,11 +63,12 @@ export const AmlDashboardPage: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      const [riskRes, custRes, txRes, branchRes] = await Promise.allSettled([
+      const [riskRes, custRes, txRes, sarRes, alertRes] = await Promise.allSettled([
         dashboardApi.getRiskAnalysis(),
         customersApi.list({ risk_level: 'high', per_page: 15 }),
         transactionsApi.list({ status: 'flagged', per_page: 15 }),
-        branchesApi.list(),
+        sarFilingsApi.list({ per_page: 10 }),
+        alertsApi.list({ severity: 'high', status: 'open', per_page: 1 }),
       ])
 
       if (riskRes.status === 'fulfilled') {
@@ -118,9 +82,12 @@ export const AmlDashboardPage: React.FC = () => {
         const d = (txRes.value as any).data ?? []
         setFlaggedTransactions(Array.isArray(d) ? d : [])
       }
-      if (branchRes.status === 'fulfilled') {
-        const d = (branchRes.value as any).data ?? []
-        setBranches(Array.isArray(d) ? d : [])
+      if (sarRes.status === 'fulfilled') {
+        const d = (sarRes.value as any).data ?? []
+        setSarFilings(Array.isArray(d) ? d : [])
+      }
+      if (alertRes.status === 'fulfilled') {
+        setHighSeverityAlerts((alertRes.value as any).meta?.total ?? 0)
       }
     } catch (err: any) {
       setError('Failed to load AML surveillance metrics.')
@@ -139,44 +106,30 @@ export const AmlDashboardPage: React.FC = () => {
     showToast(`Suspicious Activity Report ${newSar.reference} recorded.`)
   }
 
-  // Generate branch risk heatmap matrix
+  // Branch risk heatmap matrix — sourced from the risk-analysis payload
   const heatmapData: HeatmapBranchRisk[] = React.useMemo(() => {
-    if (!branches.length) {
-      return [
-        { branchId: 1, branchName: 'Main Financial Center', lowCount: 142, mediumCount: 38, highCount: 12, totalCount: 192, riskScore: 28 },
-        { branchId: 2, branchName: 'Downtown Commercial', lowCount: 88, mediumCount: 42, highCount: 18, totalCount: 148, riskScore: 44 },
-        { branchId: 3, branchName: 'Metropolitan Branch', lowCount: 110, mediumCount: 25, highCount: 8, totalCount: 143, riskScore: 21 },
-        { branchId: 4, branchName: 'North Suburb Branch', lowCount: 95, mediumCount: 14, highCount: 3, totalCount: 112, riskScore: 11 },
-      ]
-    }
+    const branchRisk = riskData?.branch_risk
+    if (!Array.isArray(branchRisk) || branchRisk.length === 0) return []
 
-    return branches.map((b, idx) => {
-      // Approximate distribution
-      const highC = highRiskCustomers.filter((c) => c.branch_id === b.id).length || (idx % 3 === 0 ? 9 : 4)
-      const medC = Math.max(12, 28 - idx * 4)
-      const lowC = Math.max(45, 110 - idx * 10)
-      const tot = highC + medC + lowC
-      const score = Math.round(((highC * 3 + medC * 1.5) / (tot * 3)) * 100)
-      return {
-        branchId: b.id,
-        branchName: b.branch_name,
-        lowCount: lowC,
-        mediumCount: medC,
-        highCount: highC,
-        totalCount: tot,
-        riskScore: score,
-      }
-    })
-  }, [branches, highRiskCustomers])
+    return branchRisk.map((b: any) => ({
+      branchId: b.branch_id,
+      branchName: b.branch_name,
+      lowCount: b.low_risk_customers ?? 0,
+      mediumCount: b.medium_risk_customers ?? 0,
+      highCount: b.high_risk_customers ?? 0,
+      totalCount: b.total_customers ?? 0,
+      riskScore: b.high_risk_percentage ?? 0,
+    }))
+  }, [riskData])
 
-  // Calculated totals
-  const totalFlaggedCount = riskData?.risk_indicators?.flagged_tx_count ?? flaggedTransactions.length ?? 8
-  const totalFlaggedVolume = riskData?.risk_indicators?.flagged_tx_volume ?? 342500
-  const highRiskCustCount = riskData?.risk_indicators?.high_risk_customers_count ?? highRiskCustomers.length ?? 14
-  const criticalAlerts = riskData?.risk_indicators?.critical_alerts ?? 5
+  // Calculated totals — sourced from the risk-analysis payload keys
+  const totalFlaggedCount = riskData?.transaction_risk?.flagged_count ?? flaggedTransactions.length
+  const totalFlaggedVolume = riskData?.transaction_risk?.flagged_volume ?? 0
+  const highRiskCustCount = riskData?.customer_risk?.high_risk_count ?? highRiskCustomers.length
+  const criticalAlerts = highSeverityAlerts
 
   const exportAmlReport = () => {
-    const headers = ['SAR Reference', 'Customer Name', 'Customer ID', 'Category', 'Amount (USD)', 'Status', 'Filing Date']
+    const headers = ['SAR Reference', 'Customer Name', 'Customer ID', 'Category', 'Amount', 'Status', 'Filing Date']
     const rows = sarFilings.map((s) => [
       s.reference,
       `"${s.customer_name}"`,
@@ -342,7 +295,11 @@ export const AmlDashboardPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {heatmapData.map((b) => (
+            {heatmapData.length === 0 ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                Branch risk data unavailable.
+              </div>
+            ) : heatmapData.map((b) => (
               <div
                 key={b.branchId}
                 style={{
@@ -767,7 +724,7 @@ export const AmlDashboardPage: React.FC = () => {
                       </td>
                       <td>
                         <strong style={{ color: '#ef4444' }}>
-                          {t.currency ?? 'USD'} {Number(t.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {formatMoney(t.amount)}
                         </strong>
                       </td>
                       <td style={{ textAlign: 'right' }}>
