@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { X, CheckCircle2, Loader2 } from 'lucide-react'
-import { alertsApi } from '@/api/alerts'
-import type { Alert } from '@/types/alert'
-import '../AlertManagement.css'
+import { alertsApi } from '@/features/alerts/api/alerts'
+import type { Alert } from '@/features/alerts/types'
+import '../pages/AlertManagement.css'
 
 interface ResolveAlertModalProps {
   alert: Alert

@@ -7,8 +7,8 @@ import {
   AlertCircle,
   FileText,
 } from 'lucide-react'
-import type { Customer } from '@/types/customer'
-import { customersApi } from '@/api/customers'
+import type { Customer } from '@/features/customers/types'
+import { customersApi } from '@/features/customers/api/customers'
 
 interface UploadDocumentModalProps {
   customer: Customer
