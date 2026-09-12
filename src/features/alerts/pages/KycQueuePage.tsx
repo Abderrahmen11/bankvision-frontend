@@ -1,3 +1,4 @@
+import { useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -18,13 +19,12 @@ import {
   ChevronRight,
   Info,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { customersApi } from '@/api/customers'
-import { branchesApi } from '@/api/branches'
-import type { Customer, CustomerListParams } from '@/types/customer'
-import type { Branch } from '@/types/user'
-import { AlertNavTabs } from './components/AlertNavTabs'
-import { UploadDocumentModal } from './modals/UploadDocumentModal'
+import { customersApi } from '@/features/customers/api/customers'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { Customer, CustomerListParams } from '@/features/customers/types'
+import type { Branch } from '@/shared/types/user'
+import { AlertNavTabs } from '../components/AlertNavTabs'
+import { UploadDocumentModal } from '../modals/UploadDocumentModal'
 import './AlertManagement.css'
 
 interface PaginationMeta {
@@ -363,7 +363,7 @@ export const KycQueuePage: React.FC = () => {
             setPage(1)
           }}
         >
-          <option value="">All Risk Levels</option>
+          <option value="">All Risk Ratings</option>
           <option value="high">High Risk</option>
           <option value="medium">Medium Risk</option>
           <option value="low">Low Risk</option>
@@ -438,7 +438,7 @@ export const KycQueuePage: React.FC = () => {
                   <th>Customer</th>
                   <th>Branch</th>
                   <th>Type</th>
-                  <th>Risk Level</th>
+                  <th>Risk Rating</th>
                   <th>KYC Status</th>
                   <th>Registration</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
