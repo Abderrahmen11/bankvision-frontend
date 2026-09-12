@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useAuth } from '@/shared/hooks'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   ShieldAlert,
@@ -17,9 +19,8 @@ import {
   Shield,
   Info,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { alertsApi } from '@/api/alerts'
-import type { Alert, AlertListParams } from '@/types/alert'
+import { alertsApi } from '@/features/alerts/api/alerts'
+import type { Alert, AlertListParams } from '@/features/alerts/types'
 import {
   canResolveAlert,
   canAssignAlert,
@@ -29,12 +30,12 @@ import {
   exportAlertsToCSV,
   formatAlertDate,
   timeAgo,
-} from './alertHelpers'
-import { AssignAlertModal } from './modals/AssignAlertModal'
-import { ResolveAlertModal } from './modals/ResolveAlertModal'
-import { AlertNavTabs } from './components/AlertNavTabs'
-import { usersApi } from '@/api/users'
-import type { User } from '@/types/user'
+} from '../alertHelpers'
+import { AssignAlertModal } from '../modals/AssignAlertModal'
+import { ResolveAlertModal } from '../modals/ResolveAlertModal'
+import { AlertNavTabs } from '../components/AlertNavTabs'
+import { usersApi } from '@/features/users/api/users'
+import type { User } from '@/shared/types/user'
 import './AlertManagement.css'
 
 interface PaginationMeta {
@@ -79,10 +80,6 @@ export const AlertListPage: React.FC = () => {
   const { user } = useAuth()
   const role = user?.role ?? 'csr'
 
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [meta, setMeta] = useState<PaginationMeta | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   // Filters
@@ -91,84 +88,73 @@ export const AlertListPage: React.FC = () => {
   const [severity, setSeverity] = useState('')
   const [status, setStatus] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
-  const [staffUsers, setStaffUsers] = useState<User[]>([])
   const [page, setPage] = useState(1)
   const PER_PAGE = 15
+
+  // Debounced query params (keeps the original 380ms search debounce)
+  const [debouncedParams, setDebouncedParams] = useState<Record<string, unknown>>({})
 
   // Modals
   const [assignTarget, setAssignTarget] = useState<Alert | null>(null)
   const [resolveTarget, setResolveTarget] = useState<Alert | null>(null)
 
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0, open: 0, inProgress: 0, resolved: 0, high: 0,
-  })
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
 
+
+
+  // Debounce the raw filters into query params (380ms, same as before)
   useEffect(() => {
-    if (['admin', 'manager', 'compliance', 'analyst', 'auditor'].includes(role)) {
-      usersApi
-        .list({ per_page: 50 })
-        .then((res: any) => {
-          const list = Array.isArray(res) ? res : (res?.data ?? [])
-          setStaffUsers(list)
-        })
-        .catch(() => {})
-    }
-  }, [role])
-
-  const fetchAlerts = useCallback(
-    async (params: AlertListParams) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await alertsApi.list(params)
-        const data = (res as any).data ?? []
-        const m = (res as any).meta ?? null
-        setAlerts(Array.isArray(data) ? data : [])
-        setMeta(m)
-
-        // Compute quick stats from current page (lightweight)
-        const all = Array.isArray(data) ? data : []
-        setStats({
-          total: m?.total ?? all.length,
-          open: all.filter((a: Alert) => a.status === 'open').length,
-          inProgress: all.filter((a: Alert) => a.status === 'in-progress').length,
-          resolved: all.filter((a: Alert) => a.status === 'resolved').length,
-          high: all.filter((a: Alert) => a.severity === 'high').length,
-        })
-      } catch (e: any) {
-        setError(e?.response?.data?.message ?? 'Failed to load alerts.')
-      } finally {
-        setLoading(false)
-      }
-    },
-    []
-  )
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchAlerts({
+    const timer = setTimeout(() => {
+      setDebouncedParams({
         search: search || undefined,
         alert_type: alertType || undefined,
-        severity: (severity as any) || undefined,
-        status: (status as any) || undefined,
+        severity: severity || undefined,
+        status: status || undefined,
         assigned_to: assignedTo ? Number(assignedTo) : undefined,
         page,
         per_page: PER_PAGE,
       })
     }, 380)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [search, alertType, severity, status, assignedTo, page, fetchAlerts])
+    return () => clearTimeout(timer)
+  }, [search, alertType, severity, status, assignedTo, page])
+
+  const alertsQuery = useQuery({
+    queryKey: ['alerts', 'list', debouncedParams],
+    queryFn: () => alertsApi.list(debouncedParams as AlertListParams),
+  })
+
+  const alerts: Alert[] = Array.isArray(alertsQuery.data?.data) ? (alertsQuery.data!.data as Alert[]) : []
+  const meta = (alertsQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = alertsQuery.isFetching
+  const error = alertsQuery.error ? String((alertsQuery.error as any)?.response?.data?.message ?? (alertsQuery.error as Error).message) : null
+
+  const canListStaff = ['admin', 'manager', 'compliance', 'analyst', 'auditor'].includes(role)
+  const staffQuery = useQuery({
+    queryKey: ['users', 'staff-options'],
+    queryFn: () => usersApi.list({ per_page: 50 }),
+    enabled: canListStaff,
+  })
+  const staffUsers = useMemo<User[]>(() => {
+    const res = staffQuery.data as unknown as { data?: User[] } | undefined
+    return res?.data ?? []
+  }, [staffQuery.data])
+  // Quick stats from the current page (lightweight, unchanged computation)
+  const stats = useMemo(
+    () => ({
+      total: meta?.total ?? alerts.length,
+      open: alerts.filter((a) => a.status === 'open').length,
+      inProgress: alerts.filter((a) => a.status === 'in-progress').length,
+      resolved: alerts.filter((a) => a.status === 'resolved').length,
+      high: alerts.filter((a) => a.severity === 'high').length,
+    }),
+    [meta?.total, alerts]
+  )
+    ? ((alertsQuery.error as any)?.response?.data?.message ?? 'Failed to load alerts.')
+    : null
 
   const handleReset = () => {
     setSearch('')
@@ -185,13 +171,13 @@ export const AlertListPage: React.FC = () => {
   }
 
   const handleAssignSuccess = (updated: Alert) => {
-    setAlerts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+    alertsQuery.refetch()
     setAssignTarget(null)
     showToast(`Alert ${updated.alert_number} assigned successfully.`)
   }
 
   const handleResolveSuccess = (updated: Alert) => {
-    setAlerts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+    alertsQuery.refetch()
     setResolveTarget(null)
     showToast(`Alert ${updated.alert_number} resolved.`)
   }
@@ -255,7 +241,7 @@ export const AlertListPage: React.FC = () => {
           </p>
         </div>
         <div className="al-header-actions">
-          <button className="al-btn al-btn-ghost" onClick={() => fetchAlerts({ page, per_page: PER_PAGE })}>
+          <button className="al-btn al-btn-ghost" onClick={() => alertsQuery.refetch()}>
             <RefreshCw size={15} />
             Refresh
           </button>
@@ -408,7 +394,7 @@ export const AlertListPage: React.FC = () => {
             <div className="al-empty-icon">⚠️</div>
             <h3>Failed to load alerts</h3>
             <p>{error}</p>
-            <button className="al-btn al-btn-primary" onClick={() => fetchAlerts({ page, per_page: PER_PAGE })}>
+            <button className="al-btn al-btn-primary" onClick={() => alertsQuery.refetch()}>
               Retry
             </button>
           </div>

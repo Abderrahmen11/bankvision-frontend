@@ -1,3 +1,4 @@
+import { useAuth } from '@/shared/hooks'
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
@@ -12,9 +13,8 @@ import {
   Tag,
   Info,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { alertsApi } from '@/api/alerts'
-import type { Alert } from '@/types/alert'
+import { alertsApi } from '@/features/alerts/api/alerts'
+import type { Alert } from '@/features/alerts/types'
 import {
   canResolveAlert,
   canAssignAlert,
@@ -24,9 +24,9 @@ import {
   getAlertableLink,
   formatAlertDate,
   timeAgo,
-} from './alertHelpers'
-import { AssignAlertModal } from './modals/AssignAlertModal'
-import { ResolveAlertModal } from './modals/ResolveAlertModal'
+} from '../alertHelpers'
+import { AssignAlertModal } from '../modals/AssignAlertModal'
+import { ResolveAlertModal } from '../modals/ResolveAlertModal'
 import './AlertManagement.css'
 
 const ENTITY_ICONS: Record<string, string> = {
