@@ -1,8 +1,8 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, Pencil } from 'lucide-react'
-import { accountsApi } from '@/api/accounts'
-import { showToast } from '@/hooks/useToast'
-import type { BankAccount } from '@/types/account'
+import { accountsApi } from '@/features/accounts/api/accounts'
+import type { BankAccount } from '@/features/accounts/types'
 
 interface Props {
   account: BankAccount

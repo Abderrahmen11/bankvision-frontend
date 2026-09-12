@@ -1,10 +1,10 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState, useEffect } from 'react'
 import { X, PlusCircle, Search } from 'lucide-react'
-import { accountsApi } from '@/api/accounts'
-import { customersApi } from '@/api/customers'
-import { showToast } from '@/hooks/useToast'
-import type { OpenAccountPayload } from '@/types/account'
-import type { Customer } from '@/types/customer'
+import { accountsApi } from '@/features/accounts/api/accounts'
+import { customersApi } from '@/features/customers/api/customers'
+import type { OpenAccountPayload } from '@/features/accounts/types'
+import type { Customer } from '@/features/customers/types'
 
 interface Props {
   onClose: () => void
@@ -22,7 +22,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
 
   // Form fields
   const [accountType, setAccountType] = useState<'savings' | 'checking' | 'business'>('savings')
-  const [currency, setCurrency]       = useState('USD')
+  const CURRENCY = 'TND' // Fixed: Tunisian Dinar
   const [openingBalance, setOpeningBalance] = useState('')
   const [interestRate, setInterestRate]     = useState('')
   const [openedDate, setOpenedDate]         = useState(new Date().toISOString().split('T')[0])
@@ -54,7 +54,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     const payload: OpenAccountPayload = {
       customer_id:     selectedCustomer.id,
       account_type:    accountType,
-      currency,
+      currency: CURRENCY,
       opening_balance: openingBalance ? parseFloat(openingBalance) : undefined,
       interest_rate:   interestRate   ? parseFloat(interestRate)   : undefined,
       opened_date:     openedDate     || undefined,
@@ -164,21 +164,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 </select>
               </div>
 
-              {/* Currency */}
-              <div className="am-form-group">
-                <label className="am-form-label">Currency *</label>
-                <select
-                  className="am-form-select"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  required
-                >
-                  <option value="USD">USD — US Dollar</option>
-                  <option value="EUR">EUR — Euro</option>
-                  <option value="GBP">GBP — British Pound</option>
-                  <option value="EGP">EGP — Egyptian Pound</option>
-                </select>
-              </div>
+              {/* Currency — fixed TND (Tunisian Dinar) */}
             </div>
 
             <div className="am-form-row">
@@ -188,6 +174,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 <input
                   className="am-form-input"
                   type="number"
+                    inputMode="decimal"
                   min="0"
                   step="0.01"
                   placeholder="0.00"
@@ -203,6 +190,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 <input
                   className="am-form-input"
                   type="number"
+                    inputMode="decimal"
                   min="0"
                   max="100"
                   step="0.01"
