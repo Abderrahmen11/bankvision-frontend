@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { showToast, useAuth } from '@/shared/hooks'
+import { toAmountNumber } from '@/shared/utils'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, PlusCircle, Download, RefreshCw, Eye, Pencil,
   Trash2, CreditCard, TrendingUp, ShieldAlert, BarChart3,
   ChevronUp, ChevronDown, RotateCcw,
 } from 'lucide-react'
-import { accountsApi } from '@/api/accounts'
-import { branchesApi } from '@/api/branches'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { BankAccount } from '@/types/account'
-import type { Branch } from '@/types/user'
-import type { PaginationMeta } from '@/types/api'
+import { accountsApi } from '@/features/accounts/api/accounts'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { BankAccount } from '@/features/accounts/types'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   ACCOUNT_TYPE_CONFIG,
   ACCOUNT_STATUS_CONFIG,
@@ -23,10 +22,13 @@ import {
   canEditAccount,
   canCloseAccount,
   canViewAllBranches,
-} from './accountHelpers'
-import { OpenAccountModal } from './modals/OpenAccountModal'
-import { EditAccountModal } from './modals/EditAccountModal'
-import { CloseAccountModal } from './modals/CloseAccountModal'
+} from '../accountHelpers'
+import { MobileSortSelect } from '@/shared/components/MobileSortSelect'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { OpenAccountModal } from '../modals/OpenAccountModal'
+import { EditAccountModal } from '../modals/EditAccountModal'
+import { CloseAccountModal } from '../modals/CloseAccountModal'
 import './AccountManagement.css'
 
 type SortField = 'account_number' | 'balance' | 'opened_date'
@@ -43,20 +45,54 @@ export const AccountListPage: React.FC = () => {
   const canSeeAllBranches = canViewAllBranches(role)
 
   // Data
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [meta, setMeta]         = useState<PaginationMeta | null>(null)
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [loading, setLoading]   = useState(true)
+  const queryClient = useQueryClient()
 
   // Filters
   const [search, setSearch]               = useState('')
   const [typeFilter, setTypeFilter]       = useState('')
   const [statusFilter, setStatusFilter]   = useState('')
-  const [currencyFilter, setCurrencyFilter] = useState('')
   const [branchFilter, setBranchFilter]   = useState('')
   const [sortBy, setSortBy]               = useState<SortField>('opened_date')
   const [sortDir, setSortDir]             = useState<'asc' | 'desc'>('desc')
   const [page, setPage]                   = useState(1)
+
+  // List query - filters/sort/page are part of the key (cached 60s)
+  const listQuery = useQuery({
+    queryKey: ['accounts', 'list', { search: search.trim() || undefined, typeFilter, statusFilter, branchFilter, sortBy, sortDir, page }],
+    queryFn: () =>
+      accountsApi.list({
+        search: search.trim() || undefined,
+        account_type: typeFilter || undefined,
+        status: statusFilter || undefined,
+        branch_id: branchFilter || undefined,
+        sort_by: sortBy,
+        sort_direction: sortDir,
+        page,
+        per_page: 15,
+      }),
+  })
+
+  const accounts = listQuery.data?.data ?? []
+  const meta = (listQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = listQuery.isFetching
+  const listError = listQuery.error as Error | null
+
+  // Server-side KPI facet counts (same filters minus status; per_page 1,
+  // only meta.total is read). Balance totals have no server aggregate, so
+  // they stay page-scoped and are labeled accordingly.
+  const kpiBaseParams = {
+    search: search.trim() || undefined,
+    account_type: typeFilter || undefined,
+    branch_id: branchFilter || undefined,
+  }
+  const activeTotalQuery = useQuery({
+    queryKey: ['accounts', 'kpi-active', kpiBaseParams],
+    queryFn: () => accountsApi.list({ ...kpiBaseParams, status: 'active', per_page: 1 }),
+  })
+  const frozenTotalQuery = useQuery({
+    queryKey: ['accounts', 'kpi-frozen', kpiBaseParams],
+    queryFn: () => accountsApi.list({ ...kpiBaseParams, status: 'frozen', per_page: 1 }),
+  })
 
   // Modals
   const [showOpenModal, setShowOpenModal]   = useState(false)
@@ -64,47 +100,23 @@ export const AccountListPage: React.FC = () => {
   const [closeTarget, setCloseTarget]       = useState<BankAccount | null>(null)
 
   // Load branches
-  useEffect(() => {
-    branchesApi
-      .list({ per_page: 100 })
-      .then((res) => setBranches(res.data))
-      .catch(() => {})
-  }, [])
+  const branchesQuery = useQuery({
+    queryKey: ['branches', 'options'],
+    queryFn: () => branchesApi.list({ per_page: 100 }),
+  })
+  const branches = branchesQuery.data?.data ?? []
 
-  // Fetch accounts
-  const fetchAccounts = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await accountsApi.list({
-        search: search.trim() || undefined,
-        account_type: typeFilter || undefined,
-        status: statusFilter || undefined,
-        currency: currencyFilter || undefined,
-        branch_id: branchFilter || undefined,
-        sort_by: sortBy,
-        sort_direction: sortDir,
-        page,
-        per_page: 15,
-      })
-      setAccounts(res.data || [])
-      setMeta(res.meta as PaginationMeta)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch accounts.'
-      showToast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, typeFilter, statusFilter, currencyFilter, branchFilter, sortBy, sortDir, page])
 
+  // Surface fetch errors the same way the old catch block did
   useEffect(() => {
-    fetchAccounts()
-  }, [fetchAccounts])
+    if (listError) showToast.error(listError.message || 'Failed to fetch accounts.')
+  }, [listError])
 
   const handleResetFilters = () => {
     setSearch('')
     setTypeFilter('')
     setStatusFilter('')
-    setCurrencyFilter('')
+    
     setBranchFilter('')
     setPage(1)
   }
@@ -138,10 +150,14 @@ export const AccountListPage: React.FC = () => {
     setPage(1)
   }
 
-  // KPI
-  const totalActive   = accounts.filter((a) => a.status === 'active').length
-  const totalFrozen   = accounts.filter((a) => a.status === 'frozen').length
-  const totalBalance  = accounts.reduce((sum, a) => sum + (a.balance || 0), 0)
+  // KPI — active/frozen from server totals; balance is a page sum (no API aggregate)
+  const totalActive =
+    (activeTotalQuery.data?.meta as PaginationMeta | null)?.total ??
+    accounts.filter((a) => a.status === 'active').length
+  const totalFrozen =
+    (frozenTotalQuery.data?.meta as PaginationMeta | null)?.total ??
+    accounts.filter((a) => a.status === 'frozen').length
+  const totalBalance  = accounts.reduce((sum, a) => sum + toAmountNumber(a.balance), 0)
 
   return (
     <div className="am-page">
@@ -157,7 +173,7 @@ export const AccountListPage: React.FC = () => {
           </button>
           <button
             className="am-btn am-btn-ghost"
-            onClick={fetchAccounts}
+            onClick={() => listQuery.refetch()}
             disabled={loading}
             title="Refresh"
           >
@@ -213,7 +229,7 @@ export const AccountListPage: React.FC = () => {
 
         <div className="am-stat-card">
           <div className="am-stat-header">
-            <span className="am-stat-label">Total Holdings</span>
+            <span className="am-stat-label">Total Holdings (Page)</span>
             <div className="am-stat-icon" style={{ background: 'rgba(6,182,212,0.12)', color: 'var(--cyan-500)' }}>
               <BarChart3 size={16} />
             </div>
@@ -221,7 +237,7 @@ export const AccountListPage: React.FC = () => {
           <span className="am-stat-value" style={{ fontSize: '1.35rem' }}>
             {formatCurrency(totalBalance)}
           </span>
-          <span className="am-stat-sub">Aggregated balance</span>
+          <span className="am-stat-sub">Sum of listed page — no server aggregate</span>
         </div>
       </div>
 
@@ -261,18 +277,6 @@ export const AccountListPage: React.FC = () => {
             <option value="closed">Closed</option>
           </select>
 
-          <select
-            className="am-filter-select"
-            value={currencyFilter}
-            onChange={(e) => { setCurrencyFilter(e.target.value); setPage(1) }}
-          >
-            <option value="">All Currencies</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="EGP">EGP</option>
-          </select>
-
           {canSeeAllBranches && (
             <select
               className="am-filter-select"
@@ -288,7 +292,7 @@ export const AccountListPage: React.FC = () => {
             </select>
           )}
 
-          {(search || typeFilter || statusFilter || currencyFilter || branchFilter) && (
+          {(search || typeFilter || statusFilter || branchFilter) && (
             <button
               className="am-btn am-btn-ghost"
               onClick={handleResetFilters}
@@ -301,7 +305,20 @@ export const AccountListPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="am-table-card">
+            {/* Mobile sort controls (hidden on desktop) */}
+      <MobileSortSelect
+        value={sortBy}
+        dir={sortDir}
+        options={[
+          { value: 'opened_date', label: 'Sort by Opened Date' },
+          { value: 'balance', label: 'Sort by Balance' },
+          { value: 'account_number', label: 'Sort by Number' },
+        ]}
+        onField={(v) => { setSortBy(v as typeof sortBy); setPage(1) }}
+        onDir={setSortDir}
+      />
+
+<div className="am-table-card">
         <div className="am-table-wrapper">
           <table className="am-table">
             <thead>
@@ -425,7 +442,7 @@ export const AccountListPage: React.FC = () => {
 
                       {/* Balance */}
                       <td>
-                        <span style={{ fontWeight: 700, color: account.balance > 0 ? 'var(--emerald-500)' : 'var(--text-primary)' }}>
+                        <span style={{ fontWeight: 700, color: toAmountNumber(account.balance) > 0 ? 'var(--emerald-500)' : 'var(--text-primary)' }}>
                           {formatCurrency(account.balance, account.currency)}
                         </span>
                       </td>
@@ -522,21 +539,21 @@ export const AccountListPage: React.FC = () => {
       {showOpenModal && (
         <OpenAccountModal
           onClose={() => setShowOpenModal(false)}
-          onSuccess={() => { setShowOpenModal(false); fetchAccounts() }}
+          onSuccess={() => { setShowOpenModal(false); queryClient.invalidateQueries({ queryKey: ['accounts'] }) }}
         />
       )}
       {editTarget && (
         <EditAccountModal
           account={editTarget}
           onClose={() => setEditTarget(null)}
-          onSuccess={() => { setEditTarget(null); fetchAccounts() }}
+          onSuccess={() => { setEditTarget(null); queryClient.invalidateQueries({ queryKey: ['accounts'] }) }}
         />
       )}
       {closeTarget && (
         <CloseAccountModal
           account={closeTarget}
           onClose={() => setCloseTarget(null)}
-          onSuccess={() => { setCloseTarget(null); fetchAccounts() }}
+          onSuccess={() => { setCloseTarget(null); queryClient.invalidateQueries({ queryKey: ['accounts'] }) }}
         />
       )}
     </div>
