@@ -60,7 +60,7 @@
   height: 8px;
   border-radius: 50%;
   background-color: var(--emerald-500);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 8px rgba(60, 184, 120, 0.6);
   animation: pulse 2s infinite ease-in-out;
 }
 
@@ -103,4 +103,14 @@
     flex-direction: column;
     gap: 0.35rem;
   }
+}
+
+.footer-system-status.status-degraded .status-indicator-dot {
+  background-color: var(--amber-500);
+  box-shadow: 0 0 8px rgba(223, 166, 64, 0.6);
+}
+
+.footer-system-status.status-down .status-indicator-dot {
+  background-color: var(--rose-500);
+  box-shadow: 0 0 8px rgba(224, 92, 92, 0.6);
 }
