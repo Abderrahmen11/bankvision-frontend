@@ -1,4 +1,4 @@
-import type { Customer } from './customer'
+import type { Customer } from '../customers/types'
 
 export type AccountType = 'savings' | 'checking' | 'business'
 export type AccountStatus = 'active' | 'frozen' | 'closed'
@@ -9,10 +9,12 @@ export interface BankAccount {
   customer_id: number
   account_type: AccountType
   currency: string
-  balance: number
+  /** Decimal:2 string as serialized by AccountResource — parse via toAmountNumber() for math */
+  balance: string
   status: AccountStatus
   opened_date: string
-  interest_rate: number
+  /** Decimal:2 string as serialized by AccountResource */
+  interest_rate: string
   customer?: Customer
   created_at?: string
   updated_at?: string

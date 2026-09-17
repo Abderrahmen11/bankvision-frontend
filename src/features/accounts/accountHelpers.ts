@@ -1,12 +1,8 @@
-import type { AccountType, AccountStatus } from '@/types/account'
-import type { UserRole } from '@/types/user'
+import { formatDateLocale, formatMoney } from '@/shared/utils'
+import type { AccountType, AccountStatus } from '@/features/accounts/types'
+import type { UserRole } from '@/shared/types/user'
 
-/* ── Account Type Labels & Config ── */
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  savings:  'Savings',
-  checking: 'Checking',
-  business: 'Business',
-}
+
 
 export const ACCOUNT_TYPE_CONFIG: Record<
   AccountType,
@@ -81,22 +77,16 @@ export function canViewAllBranches(role?: UserRole): boolean {
 /* ── Display Formatters ── */
 export function formatCurrency(
   amount: number | string | undefined | null,
-  currency = 'USD'
+  _currency?: string
 ): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0)
-  if (isNaN(num)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+  // Fixed display currency: TND
+  return formatMoney(amount)
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr)
   } catch {
     return dateStr
   }
@@ -105,25 +95,15 @@ export function formatDate(dateStr: string | null | undefined): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
 }
 
-export function getInitials(name: string): string {
-  if (!name) return 'AC'
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .filter(Boolean)
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
 
 export function getAvatarColor(seed: string): string {
   const colors = [
