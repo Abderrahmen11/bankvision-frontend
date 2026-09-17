@@ -506,3 +506,507 @@
     display: none;
   }
 }
+
+/* ── Global search results dropdown (all resources, grouped) ── */
+.navbar-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+  padding: 0.4rem;
+  z-index: 100;
+  max-height: min(520px, 65vh);
+  overflow-y: auto;
+}
+
+.search-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ── Category panel (empty query) ── */
+.search-panel-title {
+  padding: 0.45rem 0.6rem 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.search-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.search-category-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-row-hover);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.search-category-card:hover,
+.search-category-card.is-active {
+  background: rgba(201, 168, 106, 0.14);
+  border-color: rgba(201, 168, 106, 0.35);
+}
+
+.search-category-icon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: rgba(201, 168, 106, 0.12);
+  color: var(--primary-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-category-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.search-category-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-category-desc {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-panel-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0.15rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Empty-state suggestions */
+.search-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.search-suggestions-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  align-self: center;
+}
+
+.search-suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-row-hover);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.search-suggestion-chip:hover {
+  border-color: rgba(201, 168, 106, 0.5);
+  color: var(--primary-300);
+  background: rgba(201, 168, 106, 0.1);
+}
+
+.search-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.search-group-count {
+  background: rgba(201, 168, 106, 0.14);
+  color: var(--primary-400);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--transition-fast);
+}
+
+.search-result-item.is-active {
+  background: rgba(201, 168, 106, 0.14);
+}
+
+.search-result-item.is-active .search-result-title {
+  color: var(--primary-300);
+}
+
+.search-result-bullet {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 8px;
+  background: rgba(201, 168, 106, 0.12);
+  color: var(--primary-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-groups-footer {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+}
+
+.search-result-all {
+  display: block;
+  width: 100%;
+  padding: 0.55rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--primary-300);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.search-result-all:hover {
+  background: rgba(201, 168, 106, 0.08);
+}
+
+/* Loading / empty / hint states */
+.search-state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1.4rem 0.9rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.search-state-panel svg {
+  color: var(--primary-400);
+}
+
+.search-state-panel p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.search-state-sub {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.search-spinner {
+  animation: search-spin 0.9s linear infinite;
+}
+
+@keyframes search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Subtle spinner shown inside the search input while the index builds.
+   Typing and the category panel are never blocked by it. */
+.search-input-spinner {
+  color: var(--primary-400);
+  animation: search-spin 0.9s linear infinite;
+}
+
+.search-input-spinner-navbar {
+  position: absolute;
+  right: 3.4rem;
+  pointer-events: none;
+}
+
+.global-search-header .search-input-spinner {
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
+/* Navbar search button — mobile/tablet only (inline bar hidden below 1024px) */
+.search-mobile-btn {
+  display: none;
+}
+
+/* ══════════ Full-screen search overlay (<1024px) ══════════ */
+.global-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9600; /* above mobile sheets (9500) */
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: search-fade 0.16s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.global-search-panel {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  height: min(100%, 100dvh);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface, var(--slate-900));
+  animation: search-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.global-search-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated, var(--slate-800));
+  flex-shrink: 0;
+}
+
+.global-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.global-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 16px; /* prevents iOS focus zoom */
+  outline: none;
+}
+
+.global-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.global-search-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.global-search-close:active {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.global-search-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.6rem 0.7rem calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.global-search-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0.55rem 0.9rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated, var(--slate-800));
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.global-search-footer strong {
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+
+@keyframes search-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes search-rise {
+  from {
+    transform: translateY(18px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Show the search trigger only where the inline bar is hidden */
+@media (max-width: 1023px) {
+  .search-mobile-btn {
+    display: flex;
+  }
+}
+
+/* Notification rows are clickable and navigate to the alert detail */
+.notif-item-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.notif-item-clickable:hover {
+  background: rgba(201, 168, 106, 0.08);
+}
+
+.notif-item-clickable:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: -2px;
+}
+
+/* ══════════ Mobile navigation (≤767px) ══════════ */
+@media (max-width: 767px) {
+  .navbar-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .navbar-back-btn:active {
+    background: rgba(148, 163, 184, 0.12);
+  }
+
+  /* Breadcrumbs collapse to "< Back" */
+  .navbar-breadcrumbs {
+    display: none;
+  }
+
+  /* Global search hidden on phones — list pages keep their own search */
+  .navbar-center {
+    display: none;
+  }
+
+  .navbar-page-info {
+    min-width: 0;
+  }
+
+  /* ── Mobile: dropdowns render as bottom sheets via <MobileSheet> portal ──
+     (Navbar.css no longer repositions .dropdown-panel — a backdrop-filter on
+     the navbar makes it the containing block for fixed children, which used
+     to collapse the sheet into the 70px navbar.) */
+
+  /* Sheet content keeps comfortable tap heights */
+  .notif-item,
+  .user-dropdown-item,
+  .user-dropdown-logout-btn {
+    min-height: 52px;
+  }
+
+  .mark-read-btn {
+    min-height: 44px;
+  }
+
+  /* Inside the sheet, the notification list flows with the sheet's own scroll */
+  .mobile-sheet .notif-list {
+    max-height: none;
+  }
+
+  .mobile-sheet .dropdown-footer {
+    border-top: 1px solid var(--border-subtle);
+  }
+}
