@@ -5,6 +5,7 @@ import { accountsApi } from '@/features/accounts/api/accounts'
 import { customersApi } from '@/features/customers/api/customers'
 import type { OpenAccountPayload } from '@/features/accounts/types'
 import type { Customer } from '@/features/customers/types'
+import { AccountModalShell } from '../components/AccountModalShell'
 
 interface Props {
   onClose: () => void
@@ -29,7 +30,10 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
 
   // Debounce customer search
   useEffect(() => {
-    if (!customerSearch.trim()) { setCustomers([]); return }
+    if (!customerSearch.trim()) {
+      const clearTimer = setTimeout(() => setCustomers([]), 0)
+      return () => clearTimeout(clearTimer)
+    }
     const timer = setTimeout(async () => {
       setSearchLoading(true)
       try {
@@ -74,15 +78,21 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   }
 
   return (
-    <div className="am-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="am-modal">
-        <div className="am-modal-header">
-          <h2><PlusCircle size={16} /> Open New Account</h2>
-          <button className="am-modal-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="am-modal-body">
+    <AccountModalShell
+      title={<><PlusCircle size={16} /> Open New Account</>}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <button type="button" className="am-btn am-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="am-btn am-btn-primary" disabled={loading}>
+            {loading ? 'Opening…' : 'Open Account'}
+          </button>
+        </>
+      }
+    >
             {/* Customer Search */}
             <div className="am-form-group">
               <label className="am-form-label">Customer *</label>
@@ -164,7 +174,7 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 </select>
               </div>
 
-              {/* Currency — fixed TND (Tunisian Dinar) */}
+              {/* Currency - fixed TND (Tunisian Dinar) */}
             </div>
 
             <div className="am-form-row">
@@ -212,18 +222,6 @@ export const OpenAccountModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                 onChange={(e) => setOpenedDate(e.target.value)}
               />
             </div>
-          </div>
-
-          <div className="am-modal-footer">
-            <button type="button" className="am-btn am-btn-ghost" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="am-btn am-btn-primary" disabled={loading}>
-              {loading ? 'Opening…' : 'Open Account'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </AccountModalShell>
   )
 }

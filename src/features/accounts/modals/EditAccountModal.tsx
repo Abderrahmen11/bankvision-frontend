@@ -1,8 +1,9 @@
 import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
-import { X, Pencil } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { accountsApi } from '@/features/accounts/api/accounts'
 import type { BankAccount } from '@/features/accounts/types'
+import { AccountModalShell } from '../components/AccountModalShell'
 
 interface Props {
   account: BankAccount
@@ -32,15 +33,22 @@ export const EditAccountModal: React.FC<Props> = ({ account, onClose, onSuccess 
   }
 
   return (
-    <div className="am-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="am-modal" style={{ maxWidth: 420 }}>
-        <div className="am-modal-header">
-          <h2><Pencil size={15} /> Edit Account</h2>
-          <button className="am-modal-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="am-modal-body">
+    <AccountModalShell
+      title={<><Pencil size={15} /> Edit Account</>}
+      onClose={onClose}
+      maxWidth={420}
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <button type="button" className="am-btn am-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="am-btn am-btn-primary" disabled={loading}>
+            {loading ? 'Saving…' : 'Save Changes'}
+          </button>
+        </>
+      }
+    >
             <div style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)', marginBottom: '0.5rem' }}>
               <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Editing account{' '}
@@ -64,18 +72,6 @@ export const EditAccountModal: React.FC<Props> = ({ account, onClose, onSuccess 
               />
               <span className="am-form-hint">Current: {account.interest_rate}%</span>
             </div>
-          </div>
-
-          <div className="am-modal-footer">
-            <button type="button" className="am-btn am-btn-ghost" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="am-btn am-btn-primary" disabled={loading}>
-              {loading ? 'Saving…' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </AccountModalShell>
   )
 }

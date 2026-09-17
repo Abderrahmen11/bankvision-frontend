@@ -1,8 +1,10 @@
 import { showToast } from '@/shared/hooks'
+import { toAmountNumber } from '@/shared/utils'
 import React, { useState } from 'react'
-import { X, Trash2, AlertTriangle } from 'lucide-react'
+import { Trash2, AlertTriangle } from 'lucide-react'
 import { accountsApi } from '@/features/accounts/api/accounts'
 import type { BankAccount } from '@/features/accounts/types'
+import { AccountModalShell } from '../components/AccountModalShell'
 
 interface Props {
   account: BankAccount
@@ -34,16 +36,25 @@ export const CloseAccountModal: React.FC<Props> = ({ account, onClose, onSuccess
   }
 
   return (
-    <div className="am-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="am-modal" style={{ maxWidth: 440 }}>
-        <div className="am-modal-header">
-          <h2 style={{ color: 'var(--rose-500)' }}>
-            <Trash2 size={15} /> Close Account
-          </h2>
-          <button className="am-modal-close" onClick={onClose}><X size={16} /></button>
-        </div>
-
-        <div className="am-modal-body">
+    <AccountModalShell
+      title={<span style={{ color: 'var(--rose-500)' }}><Trash2 size={15} /> Close Account</span>}
+      onClose={onClose}
+      maxWidth={440}
+      footer={
+        <>
+          <button className="am-btn am-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="am-btn am-btn-danger"
+            onClick={handleClose}
+            disabled={!isConfirmed || loading}
+          >
+            {loading ? 'Closing…' : 'Permanently Close Account'}
+          </button>
+        </>
+      }
+    >
           <div className="am-danger-box">
             <p>
               <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
@@ -55,11 +66,11 @@ export const CloseAccountModal: React.FC<Props> = ({ account, onClose, onSuccess
               The account belongs to:{' '}
               <strong>{account.customer?.full_name || `Customer #${account.customer_id}`}</strong>
             </p>
-            {account.balance > 0 && (
+            {toAmountNumber(account.balance) > 0 && (
               <p style={{ marginTop: '0.5rem', color: 'var(--rose-500)' }}>
                 ⚠ This account still has a balance of{' '}
                 <strong>
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(account.balance)}
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(toAmountNumber(account.balance))}
                 </strong>.
                 Ensure funds are transferred before closing.
               </p>
@@ -80,21 +91,6 @@ export const CloseAccountModal: React.FC<Props> = ({ account, onClose, onSuccess
               autoFocus
             />
           </div>
-        </div>
-
-        <div className="am-modal-footer">
-          <button className="am-btn am-btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="am-btn am-btn-danger"
-            onClick={handleClose}
-            disabled={!isConfirmed || loading}
-          >
-            {loading ? 'Closing…' : 'Permanently Close Account'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </AccountModalShell>
   )
 }
