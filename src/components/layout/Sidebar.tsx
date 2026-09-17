@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import { useAuth } from '@/shared/hooks'
+import React, { useState, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   UserCog,
   ShieldAlert,
   FileSpreadsheet,
-  BarChart3,
   TrendingUp,
   ChevronDown,
   ChevronRight,
@@ -19,11 +19,21 @@ import {
   Landmark,
   X,
   Settings,
+  UserCircle,
   UserCheck,
   Flame,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { ROLE_CONFIGS, type UserRole } from '@/types/user'
+import { ROLE_CONFIGS, type UserRole } from '@/shared/types/user'
+import {
+  ALL_ROLES,
+  CORE_BANKING_ROLES,
+  BRANCH_ROLES,
+  USER_MGMT_ROLES,
+  ALERT_ROLES,
+  AML_ROLES,
+  AUDIT_ROLES,
+  ANALYTICS_ROLES,
+} from '@/shared/config/roles'
 import './Sidebar.css'
 
 interface NavItem {
@@ -56,25 +66,25 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'Customers',
         path: '/customers',
         icon: Users,
-        allowedRoles: ['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor'],
+        allowedRoles: CORE_BANKING_ROLES,
       },
       {
         name: 'Accounts',
         path: '/accounts',
         icon: CreditCard,
-        allowedRoles: ['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor'],
+        allowedRoles: CORE_BANKING_ROLES,
       },
       {
         name: 'Transactions',
         path: '/transactions',
         icon: ArrowLeftRight,
-        allowedRoles: ['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor'],
+        allowedRoles: CORE_BANKING_ROLES,
       },
       {
         name: 'Loan Portfolio',
         path: '/loans',
         icon: HandCoins,
-        allowedRoles: ['admin', 'manager', 'csr', 'compliance', 'analyst', 'auditor'],
+        allowedRoles: CORE_BANKING_ROLES,
       },
     ],
   },
@@ -86,13 +96,13 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'Branches',
         path: '/branches',
         icon: Building2,
-        allowedRoles: ['admin', 'manager', 'analyst', 'auditor', 'compliance'],
+        allowedRoles: BRANCH_ROLES,
       },
       {
         name: 'User Management',
         path: '/users',
         icon: UserCog,
-        allowedRoles: ['admin', 'manager'],
+        allowedRoles: USER_MGMT_ROLES,
       },
     ],
   },
@@ -104,7 +114,7 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'KYC & AML Alerts',
         path: '/alerts',
         icon: ShieldAlert,
-        allowedRoles: ['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor'],
+        allowedRoles: ALERT_ROLES,
         badge: 'Live',
         badgeVariant: 'warning',
       },
@@ -112,7 +122,7 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'KYC Queue',
         path: '/alerts/kyc',
         icon: UserCheck,
-        allowedRoles: ['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor'],
+        allowedRoles: ALERT_ROLES,
         badge: 'Queue',
         badgeVariant: 'info',
       },
@@ -120,7 +130,7 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'AML Dashboard',
         path: '/alerts/aml',
         icon: Flame,
-        allowedRoles: ['admin', 'manager', 'compliance', 'analyst', 'auditor'],
+        allowedRoles: AML_ROLES,
         badge: 'Risk',
         badgeVariant: 'danger',
       },
@@ -128,7 +138,7 @@ const NAV_SECTIONS: NavSection[] = [
         name: 'Audit Logs',
         path: '/audit-logs',
         icon: FileSpreadsheet,
-        allowedRoles: ['admin', 'compliance', 'auditor'],
+        allowedRoles: AUDIT_ROLES,
       },
     ],
   },
@@ -137,16 +147,10 @@ const NAV_SECTIONS: NavSection[] = [
     defaultExpanded: true,
     items: [
       {
-        name: 'Financial Reports',
-        path: '/reports',
-        icon: BarChart3,
-        allowedRoles: ['admin', 'manager', 'analyst', 'auditor', 'compliance'],
-      },
-      {
         name: 'Risk Modeling',
         path: '/risk-analysis',
         icon: TrendingUp,
-        allowedRoles: ['admin', 'manager', 'analyst', 'auditor', 'compliance'],
+        allowedRoles: ANALYTICS_ROLES,
       },
     ],
   },
@@ -155,10 +159,16 @@ const NAV_SECTIONS: NavSection[] = [
     defaultExpanded: true,
     items: [
       {
+        name: 'Profile Settings',
+        path: '/profile',
+        icon: UserCircle,
+        allowedRoles: ALL_ROLES,
+      },
+      {
         name: 'Settings',
         path: '/settings',
         icon: Settings,
-        allowedRoles: ['admin'],
+        allowedRoles: ALL_ROLES,
       },
     ],
   },
@@ -190,13 +200,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleConfig = user?.role ? ROLE_CONFIGS[user.role] : null
 
   // Filter sections and items by user roles
-  const filteredSections = NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => {
-      if (!item.allowedRoles || item.allowedRoles.length === 0) return true
-      return hasAnyRole(item.allowedRoles)
-    }),
-  })).filter((section) => section.items.length > 0)
+  const filteredSections = useMemo(
+    () =>
+      NAV_SECTIONS.map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          if (!item.allowedRoles || item.allowedRoles.length === 0) return true
+          return hasAnyRole(item.allowedRoles)
+        }),
+      })).filter((section) => section.items.length > 0),
+    [hasAnyRole]
+  )
 
   return (
     <>
