@@ -1,3 +1,5 @@
+import { showToast, useAuth } from '@/shared/hooks'
+import { toAmountNumber } from '@/shared/utils'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -5,10 +7,8 @@ import {
   Pencil, Snowflake, XCircle, Activity, AlertTriangle,
 } from 'lucide-react'
 
-import { accountsApi } from '@/api/accounts'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { BankAccount } from '@/types/account'
+import { accountsApi } from '@/features/accounts/api/accounts'
+import type { BankAccount } from '@/features/accounts/types'
 import {
   ACCOUNT_TYPE_CONFIG,
   ACCOUNT_STATUS_CONFIG,
@@ -19,10 +19,10 @@ import {
   canEditAccount,
   canFreezeAccount,
   canCloseAccount,
-} from './accountHelpers'
-import { EditAccountModal } from './modals/EditAccountModal'
-import { FreezeAccountModal } from './modals/FreezeAccountModal'
-import { CloseAccountModal } from './modals/CloseAccountModal'
+} from '../accountHelpers'
+import { EditAccountModal } from '../modals/EditAccountModal'
+import { FreezeAccountModal } from '../modals/FreezeAccountModal'
+import { CloseAccountModal } from '../modals/CloseAccountModal'
 import './AccountManagement.css'
 
 interface Transaction {
@@ -109,8 +109,14 @@ export const AccountDetailPage: React.FC = () => {
     }
   }, [id, txTypeFilter, txStatusFilter, txPage])
 
-  useEffect(() => { fetchAccount() }, [fetchAccount])
-  useEffect(() => { fetchTransactions() }, [fetchTransactions])
+  useEffect(() => {
+    const timer = setTimeout(() => { void fetchAccount() }, 0)
+    return () => clearTimeout(timer)
+  }, [fetchAccount])
+  useEffect(() => {
+    const timer = setTimeout(() => { void fetchTransactions() }, 0)
+    return () => clearTimeout(timer)
+  }, [fetchTransactions])
 
   const handleModalSuccess = () => {
     setShowEditModal(false)
@@ -214,7 +220,7 @@ export const AccountDetailPage: React.FC = () => {
         <div className="am-danger-box">
           <p>
             <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-            <strong>Account Closed</strong> — This account has been permanently closed.
+            <strong>Account Closed</strong> - This account has been permanently closed.
             No transactions can be processed.
           </p>
         </div>
@@ -248,7 +254,7 @@ export const AccountDetailPage: React.FC = () => {
           </div>
           <div className="am-info-row">
             <span className="am-info-label">Current Balance</span>
-            <span className="am-info-value" style={{ color: account.balance > 0 ? 'var(--emerald-500)' : 'inherit', fontSize: '1rem' }}>
+            <span className="am-info-value" style={{ color: toAmountNumber(account.balance) > 0 ? 'var(--emerald-500)' : 'inherit', fontSize: '1rem' }}>
               {formatCurrency(account.balance, account.currency)}
             </span>
           </div>
@@ -313,12 +319,12 @@ export const AccountDetailPage: React.FC = () => {
             </div>
             <div className="am-info-row">
               <span className="am-info-label">Phone</span>
-              <span className="am-info-value">{account.customer.phone || '—'}</span>
+              <span className="am-info-value">{account.customer.phone || '-'}</span>
             </div>
             <div className="am-info-row">
               <span className="am-info-label">Customer Type</span>
               <span className="am-info-value" style={{ textTransform: 'capitalize' }}>
-                {account.customer.customer_type || '—'}
+                {account.customer.customer_type || '-'}
               </span>
             </div>
           </div>
@@ -426,12 +432,12 @@ export const AccountDetailPage: React.FC = () => {
                       </td>
                       <td>
                         <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                          {tx.channel || '—'}
+                          {tx.channel || '-'}
                         </span>
                       </td>
                       <td>
                         <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 200, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {tx.description || '—'}
+                          {tx.description || '-'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
