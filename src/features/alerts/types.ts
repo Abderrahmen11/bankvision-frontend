@@ -1,21 +1,27 @@
 import type { User } from '@/shared/types/user'
 
+/**
+ * alert_type values that actually exist in the data:
+ *  - Runtime-created (TransactionService/LoanService): suspicious_transaction,
+ *    delinquent_loan, defaulted_loan
+ *  - Seeded demo data (AlertFactory/AlertSeeder): kyc_expiring, login_attempt,
+ *    loan_delinquent
+ * NOTE: the backend is inconsistent here — LoanService writes `delinquent_loan`
+ * but AlertService's analyst scope filters on `loan_delinquent`. Both spellings
+ * must stay in the union until the backend is unified.
+ */
 export type AlertType =
-  | 'kyc_expiring'
-  | 'kyc_expired'
   | 'suspicious_transaction'
-  | 'large_transaction'
-  | 'loan_delinquent'
+  | 'delinquent_loan'
   | 'defaulted_loan'
-  | 'aml_flag'
-  | 'fraud_suspected'
-  | 'account_dormant'
-  | 'other'
+  | 'kyc_expiring'
+  | 'login_attempt'
+  | 'loan_delinquent'
 
 export type AlertSeverity = 'low' | 'medium' | 'high'
 export type AlertStatus = 'open' | 'in-progress' | 'resolved'
 
-export interface Alertable {
+interface Alertable {
   type: 'Customer' | 'Account' | 'Transaction' | 'Loan'
   id: number
 }
@@ -46,20 +52,7 @@ export interface AlertListParams {
   per_page?: number
 }
 
-export interface ResolveAlertPayload {
-  notes?: string
-}
-
 export interface AssignAlertPayload {
   user_id: number
 }
 
-export interface AlertStats {
-  total: number
-  open: number
-  inProgress: number
-  resolved: number
-  highSeverity: number
-  mediumSeverity: number
-  lowSeverity: number
-}

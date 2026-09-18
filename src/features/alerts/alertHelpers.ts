@@ -11,42 +11,31 @@ export const canResolveAlert = (role: UserRole): boolean =>
 export const canAssignAlert = (role: UserRole): boolean =>
   ['admin', 'compliance', 'manager'].includes(role)
 
-export const isAlertReadOnly = (role: UserRole): boolean =>
-  ['csr', 'analyst', 'auditor'].includes(role)
+
 
 // ---------------------------------------------------------------------------
 // Alert Type Config
 // ---------------------------------------------------------------------------
 
-export const ALERT_TYPE_CONFIG: Record<
+const ALERT_TYPE_CONFIG: Record<
   AlertType,
   { label: string; color: string; bg: string; icon: string }
 > = {
-  kyc_expiring: {
-    label: 'KYC Expiring',
-    color: 'var(--warning-400)',
-    bg: 'rgba(245,158,11,0.13)',
-    icon: '🪪',
-  },
-  kyc_expired: {
-    label: 'KYC Expired',
-    color: 'var(--danger-400)',
-    bg: 'rgba(239,68,68,0.13)',
-    icon: '🚫',
-  },
   suspicious_transaction: {
     label: 'Suspicious Txn',
     color: 'var(--danger-400)',
     bg: 'rgba(239,68,68,0.13)',
     icon: '⚠️',
   },
-  large_transaction: {
-    label: 'Large Txn',
-    color: 'var(--primary-400)',
-    bg: 'rgba(99,102,241,0.12)',
-    icon: '💰',
+  delinquent_loan: {
+    // Runtime spelling written by LoanService
+    label: 'Loan Delinquent',
+    color: 'var(--warning-400)',
+    bg: 'rgba(245,158,11,0.13)',
+    icon: '📉',
   },
   loan_delinquent: {
+    // Legacy/seeded spelling (AlertFactory) — same meaning as delinquent_loan
     label: 'Loan Delinquent',
     color: 'var(--warning-400)',
     bg: 'rgba(245,158,11,0.13)',
@@ -58,40 +47,36 @@ export const ALERT_TYPE_CONFIG: Record<
     bg: 'rgba(239,68,68,0.13)',
     icon: '🔴',
   },
-  aml_flag: {
-    label: 'AML Flag',
+  kyc_expiring: {
+    label: 'KYC Expiring',
+    color: 'var(--warning-400)',
+    bg: 'rgba(245,158,11,0.13)',
+    icon: '🪪',
+  },
+  login_attempt: {
+    label: 'Login Attempt',
     color: '#e11d48',
     bg: 'rgba(225,29,72,0.12)',
     icon: '🚨',
   },
-  fraud_suspected: {
-    label: 'Fraud Suspected',
-    color: '#dc2626',
-    bg: 'rgba(220,38,38,0.12)',
-    icon: '🕵️',
-  },
-  account_dormant: {
-    label: 'Account Dormant',
-    color: 'var(--text-muted)',
-    bg: 'rgba(148,163,184,0.12)',
-    icon: '😴',
-  },
-  other: {
-    label: 'Other',
-    color: 'var(--text-secondary)',
-    bg: 'rgba(99,102,241,0.08)',
-    icon: '🔔',
-  },
 }
 
+/** Fallback for any unknown alert_type string (the column is free-form) */
+const DEFAULT_ALERT_TYPE_CONFIG = {
+  label: 'Other',
+  color: 'var(--text-secondary)',
+  bg: 'rgba(99,102,241,0.08)',
+  icon: '🔔',
+} as const
+
 export const getAlertTypeConfig = (type: string) =>
-  ALERT_TYPE_CONFIG[type as AlertType] ?? ALERT_TYPE_CONFIG.other
+  ALERT_TYPE_CONFIG[type as AlertType] ?? DEFAULT_ALERT_TYPE_CONFIG
 
 // ---------------------------------------------------------------------------
 // Severity Config
 // ---------------------------------------------------------------------------
 
-export const SEVERITY_CONFIG: Record<
+const SEVERITY_CONFIG: Record<
   AlertSeverity,
   { label: string; color: string; bg: string; dotClass: string; priority: number }
 > = {
@@ -125,7 +110,7 @@ export const getSeverityConfig = (severity: string) =>
 // Status Config
 // ---------------------------------------------------------------------------
 
-export const STATUS_CONFIG: Record<
+const STATUS_CONFIG: Record<
   AlertStatus,
   { label: string; color: string; bg: string }
 > = {
@@ -169,10 +154,7 @@ export const getAlertableLink = (alertable?: Alert['alertable']): string | null 
   }
 }
 
-export const getAlertableLabel = (alertable?: Alert['alertable']): string => {
-  if (!alertable) return '—'
-  return `${alertable.type} #${alertable.id}`
-}
+
 
 // ---------------------------------------------------------------------------
 // CSV Export
