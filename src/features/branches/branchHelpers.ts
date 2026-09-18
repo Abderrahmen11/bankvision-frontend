@@ -1,4 +1,5 @@
-import type { UserRole } from '@/types/user'
+import { formatDateLocale } from '@/shared/utils'
+import type { UserRole } from '@/shared/types/user'
 
 /* ── Branch Status Config ── */
 export const BRANCH_STATUS_CONFIG = {
@@ -25,8 +26,6 @@ export const BRANCH_STATUS_CONFIG = {
   },
 } as const
 
-export type BranchStatus = keyof typeof BRANCH_STATUS_CONFIG
-
 /* ── RBAC Permission Guards ── */
 export function canCreateBranch(role?: UserRole): boolean {
   return role === 'admin'
@@ -40,19 +39,12 @@ export function canDeleteBranch(role?: UserRole): boolean {
   return role === 'admin'
 }
 
-export function isReadOnlyBranch(role?: UserRole): boolean {
-  return role === 'analyst' || role === 'auditor' || role === 'compliance'
-}
-
-export function isOwnBranchOnly(role?: UserRole): boolean {
-  return role === 'manager' || role === 'csr'
-}
 
 /* ── Formatters ── */
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr)
   } catch {
     return dateStr
   }
@@ -61,19 +53,15 @@ export function formatDate(dateStr: string | null | undefined): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
 }
 
-export function formatPhone(phone: string | null | undefined): string {
-  if (!phone) return '—'
-  return phone
-}
 
 /* ── CSV Export ── */
 export function exportBranchesToCSV(
