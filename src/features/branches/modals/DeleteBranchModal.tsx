@@ -1,8 +1,8 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, Trash2, AlertTriangle } from 'lucide-react'
-import { branchesApi } from '@/api/branches'
-import { showToast } from '@/hooks/useToast'
-import type { Branch } from '@/types/user'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { Branch } from '@/shared/types/user'
 
 interface DeleteBranchModalProps {
   branch: Branch

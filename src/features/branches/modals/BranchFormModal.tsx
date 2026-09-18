@@ -1,10 +1,10 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState, useEffect } from 'react'
 import { X, Building2, Save } from 'lucide-react'
-import { branchesApi } from '@/api/branches'
-import type { CreateBranchPayload, UpdateBranchPayload } from '@/api/branches'
-import { usersApi } from '@/api/users'
-import { showToast } from '@/hooks/useToast'
-import type { Branch, User } from '@/types/user'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { CreateBranchPayload, UpdateBranchPayload } from '@/features/branches/api/branches'
+import { usersApi } from '@/features/users/api/users'
+import type { Branch, User } from '@/shared/types/user'
 
 interface BranchFormModalProps {
   branch?: Branch | null
@@ -49,7 +49,7 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({ branch, onClos
     else if (!/^[A-Z0-9-]{2,10}$/.test(form.branch_code.trim()))
       errs.branch_code = 'Code must be 2–10 uppercase alphanumeric characters.'
     if (!form.branch_name.trim()) errs.branch_name = 'Branch name is required.'
-    if (form.phone && !/^[\d\s\+\-\(\)]{7,20}$/.test(form.phone.trim()))
+    if (form.phone && !/^[+d\s+\-()]{7,20}$/.test(form.phone.trim()))
       errs.phone = 'Enter a valid phone number.'
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -217,7 +217,7 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({ branch, onClos
                   value={form.manager_id}
                   onChange={handleChange}
                 >
-                  <option value="">— Unassigned —</option>
+                  <option value="">- Unassigned -</option>
                   {managers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
