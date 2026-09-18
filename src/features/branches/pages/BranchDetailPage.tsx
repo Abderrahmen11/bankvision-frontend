@@ -1,3 +1,4 @@
+import { showToast, useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
@@ -15,22 +16,20 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react'
-import { branchesApi } from '@/api/branches'
-import { usersApi } from '@/api/users'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Branch, User as UserType } from '@/types/user'
-import type { PaginationMeta } from '@/types/api'
+import { branchesApi } from '@/features/branches/api/branches'
+import { usersApi } from '@/features/users/api/users'
+import type { Branch, User as UserType } from '@/shared/types/user'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   BRANCH_STATUS_CONFIG,
   canEditBranch,
   canDeleteBranch,
   formatDate,
   formatDateTime,
-} from './branchHelpers'
-import { BranchFormModal } from './modals/BranchFormModal'
-import { DeleteBranchModal } from './modals/DeleteBranchModal'
-import { ROLE_CONFIGS } from '@/types/user'
+} from '../branchHelpers'
+import { BranchFormModal } from '../modals/BranchFormModal'
+import { DeleteBranchModal } from '../modals/DeleteBranchModal'
+import { ROLE_CONFIGS } from '@/shared/types/user'
 import './BranchManagement.css'
 
 export const BranchDetailPage: React.FC = () => {
@@ -76,8 +75,11 @@ export const BranchDetailPage: React.FC = () => {
   }, [id])
 
   useEffect(() => {
-    fetchBranch()
-    fetchEmployees()
+    const timer = setTimeout(() => {
+      void fetchBranch()
+      void fetchEmployees()
+    }, 0)
+    return () => clearTimeout(timer)
   }, [fetchBranch, fetchEmployees])
 
   /* ── After edit ── */
@@ -251,7 +253,7 @@ export const BranchDetailPage: React.FC = () => {
                       {branch.city}
                     </span>
                   ) : (
-                    <span className="muted">—</span>
+                    <span className="muted">-</span>
                   )}
                 </span>
               </div>
@@ -264,7 +266,7 @@ export const BranchDetailPage: React.FC = () => {
                       {branch.phone}
                     </span>
                   ) : (
-                    <span className="muted">—</span>
+                    <span className="muted">-</span>
                   )}
                 </span>
               </div>
@@ -363,7 +365,7 @@ export const BranchDetailPage: React.FC = () => {
                     className="br-metric-value"
                     style={{ fontSize: '1rem', color: statusCfg?.color }}
                   >
-                    {statusCfg?.label ?? '—'}
+                    {statusCfg?.label ?? '-'}
                   </span>
                 </div>
               </div>
