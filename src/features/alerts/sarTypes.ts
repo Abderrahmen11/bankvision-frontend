@@ -10,7 +10,8 @@ export interface SarFiling {
   customer_name: string
   customer_number: string | null
   category: string
-  amount: number
+  /** Decimal:2 string as serialized by SarFilingResource */
+  amount: string
   status: SarStatus
   narrative: string
   action_taken: string | null

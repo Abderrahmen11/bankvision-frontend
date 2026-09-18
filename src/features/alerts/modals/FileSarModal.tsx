@@ -8,7 +8,6 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 
-export type { SarFiling }
 
 interface FileSarModalProps {
   onClose: () => void

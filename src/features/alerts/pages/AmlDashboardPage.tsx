@@ -13,7 +13,6 @@ import {
   Users,
   Eye,
   Activity,
-  CheckCircle2,
   ExternalLink,
 } from 'lucide-react'
 import { dashboardApi } from '@/features/dashboard'
@@ -24,8 +23,15 @@ import { sarFilingsApi } from '@/features/alerts/api/sarFilings'
 import type { Customer } from '@/features/customers/types'
 import type { Transaction } from '@/features/transactions/types'
 import type { SarFiling } from '@/features/alerts/sarTypes'
+import type { RiskAnalysisData } from '@/features/dashboard/types'
+import { getErrorMessage } from '@/shared/utils'
 import { AlertNavTabs } from '../components/AlertNavTabs'
+import { Toast } from '../components/Toast'
+import { StatCard } from '../components/StatCard'
+import { StatusBadge } from '../components/StatusBadge'
 import { FileSarModal } from '../modals/FileSarModal'
+import { useToast } from '../hooks/useToast'
+import { exportToCsv } from '../utils/exportCsv'
 import './AlertManagement.css'
 
 interface HeatmapBranchRisk {
@@ -38,26 +44,25 @@ interface HeatmapBranchRisk {
   riskScore: number // 0-100
 }
 
+// GET /dashboard/risk-analysis payload (see RiskAnalysisData) — alias kept
+// for local readability.
+type AmlRiskData = RiskAnalysisData
+
 export const AmlDashboardPage: React.FC = () => {
   const { user } = useAuth()
   const role = user?.role ?? 'csr'
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast, showToast } = useToast()
 
   // Data states
-  const [riskData, setRiskData] = useState<any>(null)
+  const [riskData, setRiskData] = useState<AmlRiskData | null>(null)
   const [highRiskCustomers, setHighRiskCustomers] = useState<Customer[]>([])
   const [flaggedTransactions, setFlaggedTransactions] = useState<Transaction[]>([])
   const [sarFilings, setSarFilings] = useState<SarFiling[]>([])
   const [highSeverityAlerts, setHighSeverityAlerts] = useState(0)
   const [showSarModal, setShowSarModal] = useState(false)
-
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   const loadAmlData = useCallback(async () => {
     setLoading(true)
@@ -75,29 +80,30 @@ export const AmlDashboardPage: React.FC = () => {
         setRiskData(riskRes.value)
       }
       if (custRes.status === 'fulfilled') {
-        const d = (custRes.value as any).data ?? []
+        const d = custRes.value?.data ?? []
         setHighRiskCustomers(Array.isArray(d) ? d : [])
       }
       if (txRes.status === 'fulfilled') {
-        const d = (txRes.value as any).data ?? []
+        const d = txRes.value?.data ?? []
         setFlaggedTransactions(Array.isArray(d) ? d : [])
       }
       if (sarRes.status === 'fulfilled') {
-        const d = (sarRes.value as any).data ?? []
+        const d = sarRes.value?.data ?? []
         setSarFilings(Array.isArray(d) ? d : [])
       }
       if (alertRes.status === 'fulfilled') {
-        setHighSeverityAlerts((alertRes.value as any).meta?.total ?? 0)
+        setHighSeverityAlerts(alertRes.value?.meta?.total ?? 0)
       }
-    } catch (err: any) {
-      setError('Failed to load AML surveillance metrics.')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to load AML surveillance metrics.'))
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadAmlData()
+    const timer = setTimeout(() => { void loadAmlData() }, 0)
+    return () => clearTimeout(timer)
   }, [loadAmlData])
 
   const handleSarSuccess = (newSar: SarFiling) => {
@@ -106,12 +112,12 @@ export const AmlDashboardPage: React.FC = () => {
     showToast(`Suspicious Activity Report ${newSar.reference} recorded.`)
   }
 
-  // Branch risk heatmap matrix — sourced from the risk-analysis payload
+  // Branch risk heatmap matrix - sourced from the risk-analysis payload
   const heatmapData: HeatmapBranchRisk[] = React.useMemo(() => {
     const branchRisk = riskData?.branch_risk
     if (!Array.isArray(branchRisk) || branchRisk.length === 0) return []
 
-    return branchRisk.map((b: any) => ({
+    return branchRisk.map((b) => ({
       branchId: b.branch_id,
       branchName: b.branch_name,
       lowCount: b.low_risk_customers ?? 0,
@@ -122,11 +128,29 @@ export const AmlDashboardPage: React.FC = () => {
     }))
   }, [riskData])
 
-  // Calculated totals — sourced from the risk-analysis payload keys
+  // Calculated totals - sourced from the risk-analysis payload keys
   const totalFlaggedCount = riskData?.transaction_risk?.flagged_count ?? flaggedTransactions.length
   const totalFlaggedVolume = riskData?.transaction_risk?.flagged_volume ?? 0
   const highRiskCustCount = riskData?.customer_risk?.high_risk_count ?? highRiskCustomers.length
   const criticalAlerts = highSeverityAlerts
+
+  // Real customer risk distribution from /dashboard/risk-analysis
+  const riskDistribution = (() => {
+    const total = riskData?.customer_risk?.total_customers ?? 0
+    const low = riskData?.customer_risk?.low_risk_count ?? 0
+    const medium = riskData?.customer_risk?.medium_risk_count ?? 0
+    const high = riskData?.customer_risk?.high_risk_count ?? 0
+    const pct = (n: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0)
+    return {
+      total,
+      low,
+      medium,
+      high,
+      lowPct: pct(low),
+      mediumPct: pct(medium),
+      highPct: pct(high),
+    }
+  })()
 
   const exportAmlReport = () => {
     const headers = ['SAR Reference', 'Customer Name', 'Customer ID', 'Category', 'Amount', 'Status', 'Filing Date']
@@ -139,43 +163,13 @@ export const AmlDashboardPage: React.FC = () => {
       s.status,
       s.date,
     ])
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `aml-surveillance-report-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+    exportToCsv(`aml-surveillance-report-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('AML surveillance report exported.')
   }
 
   return (
     <div className="al-page">
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 20,
-            right: 24,
-            zIndex: 99999,
-            padding: '12px 20px',
-            borderRadius: 10,
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <CheckCircle2 size={16} />
-          {toast.msg}
-        </div>
-      )}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       {/* Header */}
       <div className="al-header">
@@ -222,49 +216,42 @@ export const AmlDashboardPage: React.FC = () => {
 
       {/* Top Ribbon KPI Stats */}
       <div className="al-stats-grid">
-        <div className="al-stat-card" style={{ '--card-accent': '#ef4444' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <span className="al-stat-label">Suspicious Transactions</span>
-          <span className="al-stat-value">{totalFlaggedCount}</span>
-          <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4, fontWeight: 500 }}>
-            ${Number(totalFlaggedVolume).toLocaleString()} flagged volume
-          </span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#f97316' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(249,115,22,0.12)', color: '#f97316' }}>
-            <ShieldAlert size={20} />
-          </div>
-          <span className="al-stat-label">High-Risk Customers</span>
-          <span className="al-stat-value">{highRiskCustCount}</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            Active under surveillance
-          </span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#38bdf8' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }}>
-            <FileSpreadsheet size={20} />
-          </div>
-          <span className="al-stat-label">SAR Regulatory Filings</span>
-          <span className="al-stat-value">{sarFilings.length}</span>
-          <span style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: 4, fontWeight: 500 }}>
-            {sarFilings.filter((s) => s.status === 'filed').length} filed to FinCEN
-          </span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#a855f7' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(168,85,247,0.12)', color: '#a855f7' }}>
-            <Activity size={20} />
-          </div>
-          <span className="al-stat-label">Critical Risk Alerts</span>
-          <span className="al-stat-value">{criticalAlerts}</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            Requiring immediate triage
-          </span>
-        </div>
+        <StatCard
+          label="Suspicious Transactions"
+          value={totalFlaggedCount}
+          icon={<AlertTriangle size={20} />}
+          color="#ef4444"
+          bg="rgba(239,68,68,0.12)"
+          accent="#ef4444"
+          subtext={<span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4, fontWeight: 500 }}>${Number(totalFlaggedVolume).toLocaleString()} flagged volume</span>}
+        />
+        <StatCard
+          label="High-Risk Customers"
+          value={highRiskCustCount}
+          icon={<ShieldAlert size={20} />}
+          color="#f97316"
+          bg="rgba(249,115,22,0.12)"
+          accent="#f97316"
+          subtext={<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>Active under surveillance</span>}
+        />
+        <StatCard
+          label="SAR Regulatory Filings"
+          value={sarFilings.length}
+          icon={<FileSpreadsheet size={20} />}
+          color="#38bdf8"
+          bg="rgba(56,189,248,0.12)"
+          accent="#38bdf8"
+          subtext={<span style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: 4, fontWeight: 500 }}>{sarFilings.filter((s) => s.status === 'filed').length} filed to FinCEN</span>}
+        />
+        <StatCard
+          label="Critical Risk Alerts"
+          value={criticalAlerts}
+          icon={<Activity size={20} />}
+          color="#a855f7"
+          bg="rgba(168,85,247,0.12)"
+          accent="#a855f7"
+          subtext={<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>Requiring immediate triage</span>}
+        />
       </div>
 
       {/* Grid: Heatmap + Customer Risk Distribution */}
@@ -415,9 +402,9 @@ export const AmlDashboardPage: React.FC = () => {
               background: 'rgba(255,255,255,0.06)',
             }}
           >
-            <div style={{ width: '68%', background: '#22c55e' }} title="Low Risk: 68%" />
-            <div style={{ width: '22%', background: '#f59e0b' }} title="Medium Risk: 22%" />
-            <div style={{ width: '10%', background: '#ef4444' }} title="High Risk: 10%" />
+            <div style={{ width: `${riskDistribution.lowPct}%`, background: '#22c55e' }} title={`Low Risk: ${riskDistribution.lowPct}%`} />
+            <div style={{ width: `${riskDistribution.mediumPct}%`, background: '#f59e0b' }} title={`Medium Risk: ${riskDistribution.mediumPct}%`} />
+            <div style={{ width: `${riskDistribution.highPct}%`, background: '#ef4444' }} title={`High Risk: ${riskDistribution.highPct}%`} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -439,9 +426,9 @@ export const AmlDashboardPage: React.FC = () => {
                 </span>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>68%</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{riskDistribution.lowPct}%</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                  ~420 customers
+                  {riskDistribution.low} customers
                 </span>
               </div>
             </div>
@@ -464,9 +451,9 @@ export const AmlDashboardPage: React.FC = () => {
                 </span>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>22%</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{riskDistribution.mediumPct}%</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                  ~136 customers
+                  {riskDistribution.medium} customers
                 </span>
               </div>
             </div>
@@ -489,9 +476,9 @@ export const AmlDashboardPage: React.FC = () => {
                 </span>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>10%</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{riskDistribution.highPct}%</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                  {highRiskCustCount} customers
+                  {riskDistribution.high} customers
                 </span>
               </div>
             </div>
@@ -558,31 +545,7 @@ export const AmlDashboardPage: React.FC = () => {
                     </strong>
                   </td>
                   <td>
-                    <span
-                      className="al-badge-status"
-                      style={{
-                        textTransform: 'uppercase',
-                        fontSize: '0.7rem',
-                        background:
-                          s.status === 'filed'
-                            ? 'rgba(34,197,94,0.15)'
-                            : s.status === 'under_review'
-                            ? 'rgba(245,158,11,0.15)'
-                            : s.status === 'escalated'
-                            ? 'rgba(239,68,68,0.2)'
-                            : 'rgba(148,163,184,0.15)',
-                        color:
-                          s.status === 'filed'
-                            ? '#22c55e'
-                            : s.status === 'under_review'
-                            ? '#f59e0b'
-                            : s.status === 'escalated'
-                            ? '#ef4444'
-                            : 'var(--text-muted)',
-                      }}
-                    >
-                      {s.status.replace('_', ' ')}
-                    </span>
+                    <StatusBadge status={s.status} variant="sar" />
                   </td>
                   <td>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -647,19 +610,11 @@ export const AmlDashboardPage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <span
-                          className="al-badge-status"
-                          style={{
-                            textTransform: 'capitalize',
-                            background:
-                              c.kyc_status === 'verified'
-                                ? 'rgba(34,197,94,0.15)'
-                                : 'rgba(239,68,68,0.15)',
-                            color: c.kyc_status === 'verified' ? '#22c55e' : '#ef4444',
-                          }}
-                        >
-                          {c.kyc_status ?? 'pending'}
-                        </span>
+                        <StatusBadge
+                          status={c.kyc_status ?? 'pending'}
+                          variant="kyc"
+                          tone={c.kyc_status === 'verified' ? 'verified' : 'expired'}
+                        />
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <Link to={`/customers/${c.id}`} className="al-btn al-btn-ghost al-btn-sm" title="Investigate">
