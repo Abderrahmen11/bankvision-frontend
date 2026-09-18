@@ -1,4 +1,5 @@
 import { useAuth } from '@/shared/hooks'
+import type { UserRole } from '@/shared/types/user'
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
@@ -6,9 +7,7 @@ import {
   ShieldAlert,
   UserCheck,
   CheckCircle2,
-  AlertTriangle,
   Clock,
-  CheckCheck,
   ExternalLink,
   Tag,
   Info,
@@ -20,14 +19,18 @@ import {
   canAssignAlert,
   getAlertTypeConfig,
   getSeverityConfig,
-  getStatusConfig,
   getAlertableLink,
   formatAlertDate,
   timeAgo,
 } from '../alertHelpers'
 import { AssignAlertModal } from '../modals/AssignAlertModal'
 import { ResolveAlertModal } from '../modals/ResolveAlertModal'
+import { Toast } from '../components/Toast'
+import { EmptyState } from '../components/EmptyState'
+import { StatusBadge } from '../components/StatusBadge'
+import { useToast } from '../hooks/useToast'
 import './AlertManagement.css'
+import { getErrorMessage } from '@/shared/utils'
 
 const ENTITY_ICONS: Record<string, string> = {
   Customer: '👤',
@@ -45,15 +48,10 @@ export const AlertDetailPage: React.FC = () => {
   const [alert, setAlert] = useState<Alert | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast, showToast } = useToast()
 
   const [showAssign, setShowAssign] = useState(false)
   const [showResolve, setShowResolve] = useState(false)
-
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   useEffect(() => {
     if (!id) return
@@ -63,8 +61,8 @@ export const AlertDetailPage: React.FC = () => {
       try {
         const data = await alertsApi.get(id)
         setAlert(data)
-      } catch (e: any) {
-        setError(e?.response?.data?.message ?? 'Failed to load alert details.')
+      } catch (e: unknown) {
+        setError(getErrorMessage(e, 'Failed to load alert details.'))
       } finally {
         setLoading(false)
       }
@@ -111,18 +109,18 @@ export const AlertDetailPage: React.FC = () => {
             <ChevronLeft size={16} /> Back to Alerts
           </button>
         </div>
-        <div className="al-empty" style={{ paddingTop: 80 }}>
-          <div className="al-empty-icon">⚠️</div>
-          <h3>Alert not found</h3>
-          <p>{error ?? 'This alert may not exist or you may not have access.'}</p>
-        </div>
+        <EmptyState
+          icon="⚠️"
+          title="Alert not found"
+          message={error ?? 'This alert may not exist or you may not have access.'}
+          style={{ paddingTop: 80 }}
+        />
       </div>
     )
   }
 
   const typeConfig = getAlertTypeConfig(alert.alert_type)
   const sevConfig = getSeverityConfig(alert.severity)
-  const statusConfig = getStatusConfig(alert.status)
   const entityLink = getAlertableLink(alert.alertable)
 
   // Build timeline
@@ -153,30 +151,7 @@ export const AlertDetailPage: React.FC = () => {
 
   return (
     <div className="al-page">
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 20,
-            right: 24,
-            zIndex: 99999,
-            padding: '12px 20px',
-            borderRadius: 10,
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {toast.type === 'success' ? <CheckCheck size={16} /> : <AlertTriangle size={16} />}
-          {toast.msg}
-        </div>
-      )}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       {/* Back */}
       <div className="al-back-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -184,12 +159,12 @@ export const AlertDetailPage: React.FC = () => {
           <ChevronLeft size={16} /> Back to Alerts
         </button>
         <div className="al-header-actions">
-          {canAssignAlert(role as any) && alert.status !== 'resolved' && (
+          {canAssignAlert(role as UserRole) && alert.status !== 'resolved' && (
             <button className="al-btn al-btn-secondary" onClick={() => setShowAssign(true)}>
               <UserCheck size={15} /> Assign
             </button>
           )}
-          {canResolveAlert(role as any) && alert.status !== 'resolved' && (
+          {canResolveAlert(role as UserRole) && alert.status !== 'resolved' && (
             <button className="al-btn al-btn-resolve" onClick={() => setShowResolve(true)}>
               <CheckCircle2 size={15} /> Resolve
             </button>
@@ -244,9 +219,7 @@ export const AlertDetailPage: React.FC = () => {
               <span className="al-severity-dot" style={{ background: sevConfig.color }} />
               {sevConfig.label}
             </span>
-            <span className="al-badge" style={{ color: statusConfig.color, background: statusConfig.bg }}>
-              {statusConfig.label}
-            </span>
+            <StatusBadge status={alert.status} variant="alert" />
           </div>
           <p
             style={{
@@ -259,7 +232,7 @@ export const AlertDetailPage: React.FC = () => {
             {alert.description}
           </p>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, marginBottom: 0 }}>
-            Created {timeAgo(alert.created_at)} — {formatAlertDate(alert.created_at)}
+            Created {timeAgo(alert.created_at)} - {formatAlertDate(alert.created_at)}
           </p>
         </div>
       </div>
@@ -294,9 +267,7 @@ export const AlertDetailPage: React.FC = () => {
             </div>
             <div className="al-info-row">
               <span className="al-info-label">Status</span>
-              <span className="al-badge" style={{ color: statusConfig.color, background: statusConfig.bg }}>
-                {statusConfig.label}
-              </span>
+              <StatusBadge status={alert.status} variant="alert" />
             </div>
             <div className="al-info-row">
               <span className="al-info-label">Created</span>
@@ -351,7 +322,7 @@ export const AlertDetailPage: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                   <UserCheck size={28} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
                   Not yet assigned
-                  {canAssignAlert(role as any) && alert.status !== 'resolved' && (
+                  {canAssignAlert(role as UserRole) && alert.status !== 'resolved' && (
                     <div style={{ marginTop: 10 }}>
                       <button className="al-btn al-btn-secondary al-btn-sm" onClick={() => setShowAssign(true)}>
                         <UserCheck size={13} /> Assign Now
@@ -413,7 +384,7 @@ export const AlertDetailPage: React.FC = () => {
                 </div>
                 <div className="al-timeline-content">
                   <div className="al-timeline-event">{item.event}</div>
-                  <div className="al-timeline-time">{item.time ?? '—'}</div>
+                  <div className="al-timeline-time">{item.time ?? '-'}</div>
                 </div>
               </div>
             ))}
