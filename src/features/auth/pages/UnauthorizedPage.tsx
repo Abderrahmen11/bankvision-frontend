@@ -1,7 +1,7 @@
+import { useAuth } from '@/shared/hooks'
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShieldAlert, ArrowLeft, Home, BookOpen, LogOut } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
 
 export const UnauthorizedPage: React.FC = () => {
   const { user, roleConfig, logout } = useAuth()
@@ -73,7 +73,7 @@ export const UnauthorizedPage: React.FC = () => {
             marginBottom: '0.5rem',
           }}
         >
-          HTTP 403 — Access Forbidden
+          HTTP 403 - Access Forbidden
         </div>
 
         <h1
