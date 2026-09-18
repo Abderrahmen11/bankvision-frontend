@@ -1,5 +1,6 @@
-import type { CustomerType, KycStatus, RiskLevel } from '@/types/customer'
-import type { UserRole } from '@/types/user'
+import { formatDateLocale, formatMoney } from '@/shared/utils'
+import type { CustomerType, KycStatus, RiskLevel } from '@/features/customers/types'
+import type { UserRole } from '@/shared/types/user'
 
 export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
   premium: 'Premium Banking',
@@ -13,20 +14,20 @@ export const KYC_STATUS_CONFIG: Record<
 > = {
   verified: {
     label: 'Verified',
-    color: '#10b981',
-    bg: 'rgba(16, 185, 129, 0.12)',
+    color: 'var(--success-500, #10b981)',
+    bg: 'var(--success-50, rgba(16, 185, 129, 0.12))',
     border: 'rgba(16, 185, 129, 0.25)',
   },
   pending: {
     label: 'Pending Review',
-    color: '#f59e0b',
-    bg: 'rgba(245, 158, 11, 0.12)',
+    color: 'var(--warning-500, #f59e0b)',
+    bg: 'var(--warning-50, rgba(245, 158, 11, 0.12))',
     border: 'rgba(245, 158, 11, 0.25)',
   },
   expired: {
     label: 'Expired',
-    color: '#f43f5e',
-    bg: 'rgba(244, 63, 94, 0.12)',
+    color: 'var(--danger-500, #f43f5e)',
+    bg: 'var(--danger-50, rgba(244, 63, 94, 0.12))',
     border: 'rgba(244, 63, 94, 0.25)',
   },
 }
@@ -37,20 +38,20 @@ export const RISK_LEVEL_CONFIG: Record<
 > = {
   low: {
     label: 'Low Risk',
-    color: '#10b981',
-    bg: 'rgba(16, 185, 129, 0.12)',
+    color: 'var(--success-500, #10b981)',
+    bg: 'var(--success-50, rgba(16, 185, 129, 0.12))',
     border: 'rgba(16, 185, 129, 0.25)',
   },
   medium: {
     label: 'Medium Risk',
-    color: '#f59e0b',
-    bg: 'rgba(245, 158, 11, 0.12)',
+    color: 'var(--warning-500, #f59e0b)',
+    bg: 'var(--warning-50, rgba(245, 158, 11, 0.12))',
     border: 'rgba(245, 158, 11, 0.25)',
   },
   high: {
     label: 'High Risk',
-    color: '#f43f5e',
-    bg: 'rgba(244, 63, 94, 0.12)',
+    color: 'var(--danger-500, #f43f5e)',
+    bg: 'var(--danger-50, rgba(244, 63, 94, 0.12))',
     border: 'rgba(244, 63, 94, 0.25)',
   },
 }
@@ -85,21 +86,17 @@ export function canChangeBranch(role?: UserRole): boolean {
 }
 
 /* ── Display Formatters ── */
-export function formatCurrency(amount: number | string | undefined | null, currency = 'USD'): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount ?? 0
-  if (isNaN(num)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+export function formatCurrency(
+  amount: number | string | undefined | null
+): string {
+  // Fixed display currency: TND
+  return formatMoney(amount)
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr)
   } catch {
     return dateStr
   }
@@ -108,10 +105,10 @@ export function formatDate(dateStr: string | null | undefined): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
@@ -161,6 +158,8 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string) {
   const a = document.createElement('a')
   a.href = url
   a.download = `${filename}.csv`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
