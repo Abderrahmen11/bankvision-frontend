@@ -1,9 +1,9 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, AlertTriangle, Trash2 } from 'lucide-react'
-import { customersApi } from '@/api/customers'
-import { showToast } from '@/hooks/useToast'
-import type { Customer } from '@/types/customer'
-import '../CustomerManagement.css'
+import { customersApi } from '@/features/customers/api/customers'
+import type { Customer } from '@/features/customers/types'
+import '../pages/CustomerManagement.css'
 
 interface Props {
   customer: Customer
