@@ -1,6 +1,7 @@
 import { useAuth } from '@/shared/hooks'
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import type { UserRole } from '@/shared/types/user'
 import { useNavigate } from 'react-router-dom'
 import {
   ShieldAlert,
@@ -12,10 +13,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  CheckCheck,
   TrendingUp,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   Info,
 } from 'lucide-react'
@@ -34,9 +32,23 @@ import {
 import { AssignAlertModal } from '../modals/AssignAlertModal'
 import { ResolveAlertModal } from '../modals/ResolveAlertModal'
 import { AlertNavTabs } from '../components/AlertNavTabs'
+import { Toast } from '../components/Toast'
+import { StatCard } from '../components/StatCard'
+import { Pagination } from '../components/Pagination'
+import { FilterBar } from '../components/FilterBar'
+import { EmptyState } from '../components/EmptyState'
+import { useToast } from '../hooks/useToast'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { usersApi } from '@/features/users/api/users'
 import type { User } from '@/shared/types/user'
 import './AlertManagement.css'
+
+type AxiosLikeError = { response?: { data?: { message?: string } } }
+
+const extractApiError = (e: unknown, fallback: string): string => {
+  const err = e as AxiosLikeError
+  return err?.response?.data?.message ?? (e instanceof Error ? e.message : fallback)
+}
 
 interface PaginationMeta {
   current_page: number
@@ -47,18 +59,15 @@ interface PaginationMeta {
   to: number | null
 }
 
+// Only alert_type values the backend actually writes (runtime + seeded data)
 const ALERT_TYPE_OPTIONS = [
   { value: '', label: 'All Types' },
-  { value: 'kyc_expiring', label: 'KYC Expiring' },
-  { value: 'kyc_expired', label: 'KYC Expired' },
   { value: 'suspicious_transaction', label: 'Suspicious Txn' },
-  { value: 'large_transaction', label: 'Large Txn' },
-  { value: 'loan_delinquent', label: 'Loan Delinquent' },
+  { value: 'delinquent_loan', label: 'Loan Delinquent' },
+  { value: 'loan_delinquent', label: 'Loan Delinquent (legacy)' },
   { value: 'defaulted_loan', label: 'Defaulted Loan' },
-  { value: 'aml_flag', label: 'AML Flag' },
-  { value: 'fraud_suspected', label: 'Fraud Suspected' },
-  { value: 'account_dormant', label: 'Account Dormant' },
-  { value: 'other', label: 'Other' },
+  { value: 'kyc_expiring', label: 'KYC Expiring' },
+  { value: 'login_attempt', label: 'Login Attempt' },
 ]
 
 const SEVERITY_OPTIONS = [
@@ -80,7 +89,7 @@ export const AlertListPage: React.FC = () => {
   const { user } = useAuth()
   const role = user?.role ?? 'csr'
 
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast, showToast } = useToast()
 
   // Filters
   const [search, setSearch] = useState('')
@@ -91,46 +100,36 @@ export const AlertListPage: React.FC = () => {
   const [page, setPage] = useState(1)
   const PER_PAGE = 15
 
-  // Debounced query params (keeps the original 380ms search debounce)
-  const [debouncedParams, setDebouncedParams] = useState<Record<string, unknown>>({})
+  // Debounced search query (380ms)
+  const debouncedSearch = useDebouncedValue(search, 380)
+
+  const queryParams = useMemo<AlertListParams>(() => ({
+    search: debouncedSearch || undefined,
+    alert_type: alertType || undefined,
+    severity: severity || undefined,
+    status: status || undefined,
+    assigned_to: assignedTo ? Number(assignedTo) : undefined,
+    page,
+    per_page: PER_PAGE,
+  }), [debouncedSearch, alertType, severity, status, assignedTo, page])
 
   // Modals
   const [assignTarget, setAssignTarget] = useState<Alert | null>(null)
   const [resolveTarget, setResolveTarget] = useState<Alert | null>(null)
 
-
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
-
-
-
-  // Debounce the raw filters into query params (380ms, same as before)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedParams({
-        search: search || undefined,
-        alert_type: alertType || undefined,
-        severity: severity || undefined,
-        status: status || undefined,
-        assigned_to: assignedTo ? Number(assignedTo) : undefined,
-        page,
-        per_page: PER_PAGE,
-      })
-    }, 380)
-    return () => clearTimeout(timer)
-  }, [search, alertType, severity, status, assignedTo, page])
-
   const alertsQuery = useQuery({
-    queryKey: ['alerts', 'list', debouncedParams],
-    queryFn: () => alertsApi.list(debouncedParams as AlertListParams),
+    queryKey: ['alerts', 'list', queryParams],
+    queryFn: () => alertsApi.list(queryParams),
   })
 
-  const alerts: Alert[] = Array.isArray(alertsQuery.data?.data) ? (alertsQuery.data!.data as Alert[]) : []
+  const alertQueryData = alertsQuery.data
+  const alerts = useMemo<Alert[]>(
+    () => Array.isArray(alertQueryData?.data) ? alertQueryData.data : [],
+    [alertQueryData]
+  )
   const meta = (alertsQuery.data?.meta as PaginationMeta | null) ?? null
   const loading = alertsQuery.isFetching
-  const error = alertsQuery.error ? String((alertsQuery.error as any)?.response?.data?.message ?? (alertsQuery.error as Error).message) : null
+  const error = alertsQuery.error ? extractApiError(alertsQuery.error, 'Failed to load alerts.') : null
 
   const canListStaff = ['admin', 'manager', 'compliance', 'analyst', 'auditor'].includes(role)
   const staffQuery = useQuery({
@@ -153,8 +152,6 @@ export const AlertListPage: React.FC = () => {
     }),
     [meta?.total, alerts]
   )
-    ? ((alertsQuery.error as any)?.response?.data?.message ?? 'Failed to load alerts.')
-    : null
 
   const handleReset = () => {
     setSearch('')
@@ -184,50 +181,10 @@ export const AlertListPage: React.FC = () => {
 
   const totalPages = meta?.last_page ?? 1
 
-  const renderPageButtons = () => {
-    const pages: React.ReactNode[] = []
-    const start = Math.max(1, page - 2)
-    const end = Math.min(totalPages, page + 2)
-    for (let p = start; p <= end; p++) {
-      pages.push(
-        <button
-          key={p}
-          className={`al-page-btn${p === page ? ' active' : ''}`}
-          onClick={() => setPage(p)}
-        >
-          {p}
-        </button>
-      )
-    }
-    return pages
-  }
-
   return (
     <div className="al-page">
       {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 20,
-            right: 24,
-            zIndex: 99999,
-            padding: '12px 20px',
-            borderRadius: 10,
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {toast.type === 'success' ? <CheckCheck size={16} /> : <AlertTriangle size={16} />}
-          {toast.msg}
-        </div>
-      )}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       {/* Header */}
       <div className="al-header">
@@ -313,18 +270,12 @@ export const AlertListPage: React.FC = () => {
             accent: '#dc2626',
           },
         ].map((s) => (
-          <div className="al-stat-card" key={s.label} style={{ '--card-accent': s.accent } as React.CSSProperties}>
-            <div className="al-stat-icon" style={{ background: s.bg, color: s.color }}>
-              {s.icon}
-            </div>
-            <span className="al-stat-label">{s.label}</span>
-            <span className="al-stat-value">{s.value}</span>
-          </div>
+          <StatCard key={s.label} {...s} />
         ))}
       </div>
 
       {/* Filters */}
-      <div className="al-filters">
+      <FilterBar>
         <div className="al-search-wrap">
           <Search size={15} className="al-search-icon" />
           <input
@@ -379,7 +330,7 @@ export const AlertListPage: React.FC = () => {
             <RefreshCw size={14} /> Reset
           </button>
         )}
-      </div>
+      </FilterBar>
 
       {/* Table */}
       <div className="al-table-card">
@@ -390,14 +341,16 @@ export const AlertListPage: React.FC = () => {
         </div>
 
         {error ? (
-          <div className="al-empty">
-            <div className="al-empty-icon">⚠️</div>
-            <h3>Failed to load alerts</h3>
-            <p>{error}</p>
-            <button className="al-btn al-btn-primary" onClick={() => alertsQuery.refetch()}>
-              Retry
-            </button>
-          </div>
+          <EmptyState
+            icon="⚠️"
+            title="Failed to load alerts"
+            message={error}
+            action={
+              <button className="al-btn al-btn-primary" onClick={() => alertsQuery.refetch()}>
+                Retry
+              </button>
+            }
+          />
         ) : (
           <div className="al-table-wrap">
             <table className="al-table">
@@ -428,11 +381,11 @@ export const AlertListPage: React.FC = () => {
                   ? (
                       <tr>
                         <td colSpan={8}>
-                          <div className="al-empty">
-                            <div className="al-empty-icon">🔔</div>
-                            <h3>No alerts found</h3>
-                            <p>No alerts match your current filter criteria.</p>
-                          </div>
+                          <EmptyState
+                            icon="🔔"
+                            title="No alerts found"
+                            message="No alerts match your current filter criteria."
+                          />
                         </td>
                       </tr>
                     )
@@ -507,7 +460,7 @@ export const AlertListPage: React.FC = () => {
                               >
                                 <Eye size={14} />
                               </button>
-                              {canAssignAlert(role as any) && alert.status !== 'resolved' && (
+                              {canAssignAlert(role as UserRole) && alert.status !== 'resolved' && (
                                 <button
                                   className="al-btn al-btn-ghost al-btn-sm"
                                   title="Assign"
@@ -516,7 +469,7 @@ export const AlertListPage: React.FC = () => {
                                   <UserCheck size={14} />
                                 </button>
                               )}
-                              {canResolveAlert(role as any) && alert.status !== 'resolved' && (
+                              {canResolveAlert(role as UserRole) && alert.status !== 'resolved' && (
                                 <button
                                   className="al-btn al-btn-ghost al-btn-sm"
                                   title="Resolve"
@@ -538,28 +491,13 @@ export const AlertListPage: React.FC = () => {
 
         {/* Pagination */}
         {!loading && !error && meta && meta.last_page > 1 && (
-          <div className="al-pagination">
-            <span className="al-page-info">
-              Showing {meta.from ?? 0}–{meta.to ?? 0} of {meta.total}
-            </span>
-            <div className="al-page-controls">
-              <button
-                className="al-page-btn"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeft size={15} />
-              </button>
-              {renderPageButtons()}
-              <button
-                className="al-page-btn"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            meta={meta}
+            onPageChange={setPage}
+            variant="numbered"
+          />
         )}
       </div>
 
