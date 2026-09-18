@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { X, Search, UserCheck, Loader2, Building2, Shield } from 'lucide-react'
 import { usersApi } from '@/features/users/api/users'
 import { branchesApi } from '@/features/branches/api/branches'
@@ -6,6 +6,8 @@ import type { Alert } from '@/features/alerts/types'
 import type { User, UserRole } from '@/shared/types/user'
 import { ROLE_CONFIGS } from '@/shared/types/user'
 import { alertsApi } from '@/features/alerts/api/alerts'
+import { getErrorMessage } from '@/shared/utils'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import '../pages/AlertManagement.css'
 
 const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager', 'compliance', 'csr', 'analyst', 'auditor']
@@ -30,15 +32,17 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedSearch = useDebouncedValue(search, 320)
+  const debouncedBranchId = useDebouncedValue(branchId, 320)
+  const debouncedRole = useDebouncedValue(role, 320)
 
   // Branch options for the filter dropdown
   useEffect(() => {
     branchesApi
       .list()
-      .then((res: any) => {
-        const list = Array.isArray(res) ? res : (res?.data ?? [])
-        setBranches(list.filter((b: any) => b && b.id != null))
+      .then((res) => {
+        const list = res.data ?? []
+        setBranches(list.filter((b) => b && b.id != null))
       })
       .catch(() => setBranches([]))
   }, [])
@@ -52,7 +56,7 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
         role: roleFilter || undefined,
         per_page: 20,
       })
-      setResults(Array.isArray(res.data) ? res.data : ((res as any).data?.data ?? []))
+      setResults(res.data ?? [])
     } catch {
       setResults([])
     } finally {
@@ -61,12 +65,11 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
   }, [])
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchUsers(search, branchId, role), 320)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [search, branchId, role, fetchUsers])
+    const timer = setTimeout(() => {
+      void fetchUsers(debouncedSearch, debouncedBranchId, debouncedRole)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [debouncedSearch, debouncedBranchId, debouncedRole, fetchUsers])
 
   const hasFilters = Boolean(search || branchId || role)
 
@@ -80,8 +83,8 @@ export const AssignAlertModal: React.FC<AssignAlertModalProps> = ({
     try {
       const updated = await alertsApi.assign(alert.id, { user_id: selected.id })
       onSuccess(updated)
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Failed to assign alert. Please try again.')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Failed to assign alert. Please try again.'))
     } finally {
       setSubmitting(false)
     }
