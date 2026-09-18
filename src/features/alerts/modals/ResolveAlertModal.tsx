@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { X, CheckCircle2, Loader2 } from 'lucide-react'
 import { alertsApi } from '@/features/alerts/api/alerts'
 import type { Alert } from '@/features/alerts/types'
+import { getErrorMessage } from '@/shared/utils'
 import '../pages/AlertManagement.css'
 
 interface ResolveAlertModalProps {
@@ -25,8 +26,8 @@ export const ResolveAlertModal: React.FC<ResolveAlertModalProps> = ({
     try {
       const updated = await alertsApi.resolve(alert.id, notes || undefined)
       onSuccess(updated)
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Failed to resolve alert. Please try again.')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Failed to resolve alert. Please try again.'))
     } finally {
       setSubmitting(false)
     }
