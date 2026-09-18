@@ -1,21 +1,20 @@
+import { showToast, useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Pencil, Trash2, Mail, Phone, MapPin,
   Building, Calendar, CreditCard, HandCoins, ArrowLeftRight,
   RefreshCw, UserCheck
 } from 'lucide-react'
-import { customersApi } from '@/api/customers'
-import { branchesApi } from '@/api/branches'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
+import { customersApi } from '@/features/customers/api/customers'
+import { branchesApi } from '@/features/branches/api/branches'
 import type {
   Customer,
   CustomerAccount,
   CustomerLoan,
   CustomerTransaction,
-} from '@/types/customer'
-import type { Branch } from '@/types/user'
+} from '@/features/customers/types'
+import type { Branch } from '@/shared/types/user'
 import {
   CUSTOMER_TYPE_LABELS,
   KYC_STATUS_CONFIG,
@@ -27,9 +26,9 @@ import {
   getAvatarColor,
   canEditCustomer,
   canDeleteCustomer,
-} from './customerHelpers'
-import { EditCustomerModal } from './modals/EditCustomerModal'
-import { DeleteCustomerModal } from './modals/DeleteCustomerModal'
+} from '../customerHelpers'
+import { EditCustomerModal } from '../modals/EditCustomerModal'
+import { DeleteCustomerModal } from '../modals/DeleteCustomerModal'
 import './CustomerManagement.css'
 
 export const CustomerDetailPage: React.FC = () => {
@@ -83,7 +82,8 @@ export const CustomerDetailPage: React.FC = () => {
   }, [id, navigate])
 
   useEffect(() => {
-    fetchCustomer()
+    const timer = setTimeout(() => { void fetchCustomer() }, 0)
+    return () => clearTimeout(timer)
   }, [fetchCustomer])
 
   // Fetch Tab Specific Sub-resources
@@ -110,7 +110,8 @@ export const CustomerDetailPage: React.FC = () => {
   }, [id, activeTab])
 
   useEffect(() => {
-    fetchSubResources()
+    const timer = setTimeout(() => { void fetchSubResources() }, 0)
+    return () => clearTimeout(timer)
   }, [fetchSubResources])
 
   if (loading || !customer) {
@@ -229,18 +230,33 @@ export const CustomerDetailPage: React.FC = () => {
 
             <div className="cm-meta-row">
               <span className="cm-meta-label"><MapPin size={14} /> City / Region</span>
-              <span className="cm-meta-value">{customer.city || '—'}</span>
+              <span className="cm-meta-value">{customer.city || '-'}</span>
             </div>
 
             <div className="cm-meta-row">
               <span className="cm-meta-label"><MapPin size={14} /> Address</span>
-              <span className="cm-meta-value">{customer.address || '—'}</span>
+              <span className="cm-meta-value">{customer.address || '-'}</span>
             </div>
 
             <div className="cm-meta-row">
               <span className="cm-meta-label"><UserCheck size={14} /> Relationship Mgr</span>
               <span className="cm-meta-value">
-                {customer.relationship_manager?.name || 'Unassigned'}
+                {customer.relationship_manager ? (
+                  // Roles with users-list access can click through to the user profile
+                  role && ['admin', 'manager', 'compliance', 'analyst', 'auditor'].includes(role) ? (
+                    <Link
+                      to={`/users/${customer.relationship_manager.id}`}
+                      style={{ color: 'var(--color-primary)', textDecoration: 'none' }}
+                      title={`View ${customer.relationship_manager.name}'s profile`}
+                    >
+                      {customer.relationship_manager.name}
+                    </Link>
+                  ) : (
+                    customer.relationship_manager.name
+                  )
+                ) : (
+                  <span style={{ opacity: 0.55 }}>Unassigned</span>
+                )}
               </span>
             </div>
 
@@ -359,7 +375,7 @@ export const CustomerDetailPage: React.FC = () => {
                                   color: Number(acc.balance) > 0 ? 'var(--emerald-500)' : 'var(--text-primary)',
                                 }}
                               >
-                                {formatCurrency(acc.balance, acc.currency)}
+                                {formatCurrency(acc.balance)}
                               </span>
                             </td>
                             <td>
