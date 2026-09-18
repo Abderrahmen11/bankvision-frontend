@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { showToast, useAuth } from '@/shared/hooks'
+import React, { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -17,20 +19,18 @@ import {
   ChevronRight,
   MapPin,
 } from 'lucide-react'
-import { branchesApi } from '@/api/branches'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Branch } from '@/types/user'
-import type { PaginationMeta } from '@/types/api'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { Branch } from '@/shared/types/user'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   BRANCH_STATUS_CONFIG,
   canCreateBranch,
   canEditBranch,
   canDeleteBranch,
   exportBranchesToCSV,
-} from './branchHelpers'
-import { BranchFormModal } from './modals/BranchFormModal'
-import { DeleteBranchModal } from './modals/DeleteBranchModal'
+} from '../branchHelpers'
+import { BranchFormModal } from '../modals/BranchFormModal'
+import { DeleteBranchModal } from '../modals/DeleteBranchModal'
 import './BranchManagement.css'
 
 type SortField = 'branch_name' | 'branch_code' | 'city' | 'created_at'
@@ -47,9 +47,7 @@ export const BranchListPage: React.FC = () => {
   const allowDelete = canDeleteBranch(role)
 
   // Data
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [meta, setMeta]         = useState<PaginationMeta | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const queryClient = useQueryClient()
 
   // Filters
   const [search, setSearch]           = useState('')
@@ -64,10 +62,11 @@ export const BranchListPage: React.FC = () => {
   const [editTarget, setEditTarget]             = useState<Branch | null>(null)
   const [deleteTarget, setDeleteTarget]         = useState<Branch | null>(null)
 
-  const fetchBranches = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await branchesApi.list({
+  // List query - filters/sort/page are part of the key (cached 60s)
+  const listQuery = useQuery({
+    queryKey: ['branches', 'list', { search: search.trim() || undefined, cityFilter, statusFilter, sortBy, sortDir, page }],
+    queryFn: () =>
+      branchesApi.list({
         search: search.trim() || undefined,
         city: cityFilter || undefined,
         status: statusFilter || undefined,
@@ -75,27 +74,21 @@ export const BranchListPage: React.FC = () => {
         sort_direction: sortDir,
         page,
         per_page: 15,
-      })
-      setBranches(res.data)
-      setMeta(res.meta as PaginationMeta)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load branches.'
-      showToast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, cityFilter, statusFilter, sortBy, sortDir, page])
+      }),
+  })
+
+  const branches = listQuery.data?.data ?? []
+  const meta = (listQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = listQuery.isFetching
+  const listError = listQuery.error as Error | null
 
   useEffect(() => {
-    setPage(1)
-  }, [search, cityFilter, statusFilter, sortBy, sortDir])
-
-  useEffect(() => {
-    fetchBranches()
-  }, [fetchBranches])
+    if (listError) showToast.error(listError.message || 'Failed to load branches.')
+  }, [listError])
 
   /* ── Sorting ── */
   const toggleSort = (field: SortField) => {
+    setPage(1)
     if (sortBy === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -103,11 +96,6 @@ export const BranchListPage: React.FC = () => {
       setSortDir('asc')
     }
   }
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return null
-    return sortDir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />
-  }
-
   /* ── Export ── */
   const handleExport = () => {
     if (!branches.length) {
@@ -134,14 +122,13 @@ export const BranchListPage: React.FC = () => {
     setShowAddModal(false)
     setEditTarget(null)
     // Refresh list
-    fetchBranches()
+    queryClient.invalidateQueries({ queryKey: ['branches'] })
   }
 
   /* ── After Delete ── */
-  const handleDeleted = (id: number) => {
+  const handleDeleted = (_id: number) => {
     setDeleteTarget(null)
-    setBranches((prev) => prev.filter((b) => b.id !== id))
-    if (meta) setMeta({ ...meta, total: meta.total - 1 })
+    listQuery.refetch()
   }
 
   /* ── Stats ── */
@@ -182,7 +169,7 @@ export const BranchListPage: React.FC = () => {
           </button>
           <button
             className="br-btn br-btn-ghost"
-            onClick={fetchBranches}
+            onClick={() => listQuery.refetch()}
             title="Refresh"
             disabled={loading}
           >
@@ -210,7 +197,7 @@ export const BranchListPage: React.FC = () => {
               <Building2 size={17} color="var(--primary-400)" />
             </span>
           </div>
-          <span className="br-stat-value">{meta?.total ?? '—'}</span>
+          <span className="br-stat-value">{meta?.total ?? '-'}</span>
           <span className="br-stat-sub">Across all regions</span>
         </div>
         <div className="br-stat-card">
@@ -255,14 +242,14 @@ export const BranchListPage: React.FC = () => {
             className="br-search-input"
             placeholder="Search by name, code, or city…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           />
         </div>
 
         <select
           className="br-filter-select"
           value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
+          onChange={(e) => { setCityFilter(e.target.value); setPage(1) }}
           aria-label="Filter by city"
         >
           <option value="">All Cities</option>
@@ -276,7 +263,7 @@ export const BranchListPage: React.FC = () => {
         <select
           className="br-filter-select"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
           aria-label="Filter by status"
         >
           <option value="">All Statuses</option>
@@ -293,17 +280,17 @@ export const BranchListPage: React.FC = () => {
             <tr>
               <th className="sortable" onClick={() => toggleSort('branch_code')}>
                 <span className="br-th-inner">
-                  Branch Code <SortIcon field="branch_code" />
+                  Branch Code                   {sortBy === 'branch_code' && (sortDir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
                 </span>
               </th>
               <th className="sortable" onClick={() => toggleSort('branch_name')}>
                 <span className="br-th-inner">
-                  Branch Name <SortIcon field="branch_name" />
+                  Branch Name                   {sortBy === 'branch_name' && (sortDir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
                 </span>
               </th>
               <th className="sortable" onClick={() => toggleSort('city')}>
                 <span className="br-th-inner">
-                  City <SortIcon field="city" />
+                  City                   {sortBy === 'city' && (sortDir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
                 </span>
               </th>
               <th>Phone</th>
@@ -363,13 +350,13 @@ export const BranchListPage: React.FC = () => {
                           {branch.city}
                         </span>
                       ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
                       )}
                     </td>
 
                     {/* Phone */}
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      {branch.phone ?? '—'}
+                      {branch.phone ?? '-'}
                     </td>
 
                     {/* Manager */}
