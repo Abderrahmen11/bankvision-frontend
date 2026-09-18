@@ -1,4 +1,4 @@
-import type { Branch, User } from './user'
+import type { Branch, User } from '@/shared/types/user'
 
 export type CustomerType = 'premium' | 'regular' | 'business'
 export type KycStatus = 'verified' | 'pending' | 'expired'
@@ -22,7 +22,39 @@ export interface Customer {
   relationship_manager?: User | null
   accounts_count?: number
   loans_count?: number
+  document_count?: number
   total_balance?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface KycDocument {
+  id: number
+  customer_id: number
+  document_type: string
+  document_number: string
+  issuing_country?: string | null
+  expiry_date?: string | null
+  file_path?: string
+  file_name: string
+  file_size: number
+  file_size_formatted?: string
+  mime_type: string
+  uploaded_by?: {
+    id: number
+    name: string
+    role: string
+    email?: string
+  } | null
+  customer?: {
+    id: number
+    customer_number: string
+    full_name: string
+  } | null
+  uploaded_at: string
+  verified_at?: string | null
+  status: 'pending' | 'verified' | 'rejected'
+  notes?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -50,7 +82,8 @@ export interface CustomerLoan {
   amount?: number | string
   interest_rate: number | string
   term_months: number
-  status: 'pending' | 'approved' | 'active' | 'rejected' | 'delinquent' | 'paid_off' | string
+  // LoanService only ever sets: pending | active | delinquent | defaulted | completed
+  status: 'pending' | 'active' | 'delinquent' | 'defaulted' | 'completed' | string
   start_date?: string | null
   next_payment_date?: string | null
   created_at?: string
