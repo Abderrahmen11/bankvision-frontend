@@ -128,14 +128,14 @@
 }
 
 .al-role-banner.info {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.25);
+  background: rgba(201, 168, 106, 0.08);
+  border-color: rgba(201, 168, 106, 0.25);
   color: var(--primary-300);
 }
 
 .al-role-banner.warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(223, 166, 64, 0.08);
+  border-color: rgba(223, 166, 64, 0.25);
   color: var(--warning-400);
 }
 
@@ -178,7 +178,7 @@
 .al-search-input:focus {
   outline: none;
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.12);
 }
 
 .al-filter-select {
@@ -196,7 +196,7 @@
 .al-filter-select:focus {
   outline: none;
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.12);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
@@ -223,7 +223,7 @@
 .al-btn-primary:hover {
   background: var(--primary-500);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(201, 168, 106, 0.3);
 }
 
 .al-btn-secondary {
@@ -250,13 +250,13 @@
 }
 
 .al-btn-danger {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background: rgba(224, 92, 92, 0.1);
+  border-color: rgba(224, 92, 92, 0.3);
+  color: var(--rose-500);
 }
 
 .al-btn-danger:hover {
-  background: #ef4444;
+  background: var(--rose-500);
   color: #fff;
 }
 
@@ -730,12 +730,12 @@
 .al-form-textarea:focus {
   outline: none;
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.12);
 }
 
 .al-error-msg {
   font-size: 0.8rem;
-  color: #ef4444;
+  color: var(--rose-500);
   margin-top: 2px;
 }
 
@@ -817,7 +817,7 @@
 }
 
 .al-search-result-item.selected {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(201, 168, 106, 0.12);
   color: var(--primary-400);
 }
 
@@ -876,7 +876,7 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-row-hover);
   color: var(--text-muted);
   transition: all var(--transition-fast);
 }
@@ -886,7 +886,7 @@
 }
 
 .al-tab.active .al-tab-badge {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(201, 168, 106, 0.15);
   color: var(--primary-400);
 }
 
@@ -897,8 +897,8 @@
 
 /* ── Dropzone & Verification ─────────────────────────────── */
 .al-dropzone.drag-active {
-  border-color: var(--primary-400, #818cf8) !important;
-  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: var(--primary-400, var(--primary-400)) !important;
+  background: rgba(201, 168, 106, 0.12) !important;
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
@@ -930,3 +930,161 @@
     max-width: 100%;
   }
 }
+
+
+/* ── Night Ledger refinements (appended) ─────────────────────────── */
+.al-table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border-subtle-hover);
+  box-shadow: 0 3px 0 -2px var(--border-subtle);
+}
+
+.al-badge {
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.al-severity-badge {
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.al-info-value,
+.al-stat-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ── Structural pass: masthead + ledger strip ────────────────────────── */
+.al-page-header, .al-header {
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 3px 0 -2px var(--border-subtle);
+  align-items: flex-end;
+  animation: pageEnter 280ms var(--ease-out-expo) both;
+}
+.al-stats-grid {
+  gap: 0 !important;
+  padding: 0.4rem 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-highlight), var(--shadow-sm);
+  overflow: hidden;
+  animation: pageEnter 280ms 90ms var(--ease-out-expo) both;
+}
+.al-stat-card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-right: 1px solid var(--border-subtle) !important;
+  border-radius: 0 !important;
+  padding: 0.6rem 1.3rem !important;
+}
+.al-stat-card:last-child { border-right: none !important; }
+.al-stat-icon { display: none; }
+.al-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+}
+.al-stat-value { font-size: 1.45rem !important; font-weight: 600; }
+.al-stat-card:first-child .al-stat-value {
+  font-size: 2.15rem !important;
+  color: var(--primary-300);
+}
+
+/* ── KYC Documents Drawer & Attachment Badges (cm-kyc-) ────────────── */
+.cm-kyc-docs-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  transition: all 0.18s ease;
+}
+
+.cm-kyc-docs-btn:hover {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.cm-kyc-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+  color: #0f172a;
+  background: #38bdf8;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.cm-kyc-drawer-overlay {
+  z-index: 1100;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.cm-kyc-drawer {
+  animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.cm-kyc-drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cm-kyc-drawer-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cm-kyc-drawer-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.cm-kyc-drawer-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.cm-kyc-doc-card {
+  transition: border-color 0.2s ease, transform 0.18s ease, background 0.2s ease;
+}
+
+.cm-kyc-doc-card:hover {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  transform: translateY(-1px);
+}
+
+.cm-kyc-type-pill {
+  font-family: var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cm-kyc-notice-box {
+  animation: fadeIn 0.3s ease;
+}
+
+.cm-kyc-progress-wrap {
+  animation: fadeIn 0.2s ease;
+}
+
