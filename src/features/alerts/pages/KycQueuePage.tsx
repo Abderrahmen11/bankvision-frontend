@@ -1,5 +1,5 @@
 import { useAuth } from '@/shared/hooks'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   UserCheck,
@@ -14,18 +14,28 @@ import {
   ShieldAlert,
   Building2,
   FileCheck,
-  CheckCheck,
-  ChevronLeft,
-  ChevronRight,
   Info,
+  Paperclip,
 } from 'lucide-react'
 import { customersApi } from '@/features/customers/api/customers'
 import { branchesApi } from '@/features/branches/api/branches'
 import type { Customer, CustomerListParams } from '@/features/customers/types'
 import type { Branch } from '@/shared/types/user'
 import { AlertNavTabs } from '../components/AlertNavTabs'
+import { Toast } from '../components/Toast'
+import { StatCard } from '../components/StatCard'
+import { Pagination } from '../components/Pagination'
+import { FilterBar } from '../components/FilterBar'
+import { EmptyState } from '../components/EmptyState'
+import { StatusBadge } from '../components/StatusBadge'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { useToast } from '../hooks/useToast'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
+import { exportToCsv } from '../utils/exportCsv'
 import { UploadDocumentModal } from '../modals/UploadDocumentModal'
+import { KycDocumentsDrawer } from '../modals/KycDocumentsDrawer'
 import './AlertManagement.css'
+import { getErrorMessage } from '@/shared/utils'
 
 interface PaginationMeta {
   current_page: number
@@ -45,7 +55,7 @@ export const KycQueuePage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [branches, setBranches] = useState<Branch[]>([])
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast, showToast } = useToast()
 
   // Filters
   const [search, setSearch] = useState('')
@@ -57,33 +67,40 @@ export const KycQueuePage: React.FC = () => {
 
   // Quick Action / Modal States
   const [uploadCustomer, setUploadCustomer] = useState<Customer | null>(null)
+  const [viewDocsCustomer, setViewDocsCustomer] = useState<Customer | null>(null)
   const [confirmCustomer, setConfirmCustomer] = useState<{
     customer: Customer
     action: 'verify' | 'reject'
   } | null>(null)
   const [processingAction, setProcessingAction] = useState(false)
 
-  // KPI Stats
+  // KPI Stats — server-side facet totals (meta.total), refreshed after
+  // verify/reject actions via kpiRefreshTick
   const [kpiStats, setKpiStats] = useState({
     pending: 0,
     expired: 0,
     highRisk: 0,
     verified: 0,
   })
+  const [kpiRefreshTick, setKpiRefreshTick] = useState(0)
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedSearch = useDebouncedValue(search, 380)
 
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  const filterParams = useMemo<CustomerListParams>(() => ({
+    search: debouncedSearch || undefined,
+    kyc_status: kycStatus || undefined,
+    risk_level: riskLevel || undefined,
+    branch_id: branchId || undefined,
+    page,
+    per_page: PER_PAGE,
+  }), [debouncedSearch, kycStatus, riskLevel, branchId, page])
 
   // Load branches
   useEffect(() => {
     branchesApi
       .list()
-      .then((res: any) => {
-        const list = Array.isArray(res) ? res : (res?.data ?? [])
+      .then((res) => {
+        const list = res.data ?? []
         setBranches(list)
       })
       .catch(() => {})
@@ -95,21 +112,12 @@ export const KycQueuePage: React.FC = () => {
       setError(null)
       try {
         const res = await customersApi.list(params)
-        const data = (res as any).data ?? []
-        const m = (res as any).meta ?? null
+        const data = res.data ?? []
+        const m = res.meta ?? null
         setCustomers(Array.isArray(data) ? data : [])
         setMeta(m)
-
-        // Compute local KPI counts
-        const all = Array.isArray(data) ? data : []
-        setKpiStats({
-          pending: all.filter((c: Customer) => c.kyc_status === 'pending').length,
-          expired: all.filter((c: Customer) => c.kyc_status === 'expired').length,
-          highRisk: all.filter((c: Customer) => c.risk_level === 'high').length,
-          verified: all.filter((c: Customer) => c.kyc_status === 'verified').length,
-        })
-      } catch (err: any) {
-        setError(err?.response?.data?.message ?? 'Failed to load KYC verification queue.')
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Failed to load KYC verification queue.'))
       } finally {
         setLoading(false)
       }
@@ -117,22 +125,40 @@ export const KycQueuePage: React.FC = () => {
     []
   )
 
+  // Server-side KPI facet counts (per_page 1 — only meta.total is read)
+  // Follows search + branch only (not status/risk tabs) so the cards describe the queue universe.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      fetchKycQueue({
-        search: search || undefined,
-        kyc_status: kycStatus || undefined,
-        risk_level: riskLevel || undefined,
-        branch_id: branchId || undefined,
-        page,
-        per_page: PER_PAGE,
-      })
-    }, 380)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
+    let active = true
+    const scope: CustomerListParams = {
+      search: debouncedSearch || undefined,
+      branch_id: branchId || undefined,
+      per_page: 1,
     }
-  }, [search, kycStatus, riskLevel, branchId, page, fetchKycQueue])
+    void Promise.allSettled([
+      customersApi.list({ ...scope, kyc_status: 'pending' }),
+      customersApi.list({ ...scope, kyc_status: 'expired' }),
+      customersApi.list({ ...scope, kyc_status: 'verified' }),
+      customersApi.list({ ...scope, risk_level: 'high' }),
+    ]).then(([pending, expired, verified, highRisk]) => {
+      if (!active) return
+      setKpiStats({
+        pending: pending.status === 'fulfilled' ? (pending.value.meta?.total ?? 0) : 0,
+        expired: expired.status === 'fulfilled' ? (expired.value.meta?.total ?? 0) : 0,
+        verified: verified.status === 'fulfilled' ? (verified.value.meta?.total ?? 0) : 0,
+        highRisk: highRisk.status === 'fulfilled' ? (highRisk.value.meta?.total ?? 0) : 0,
+      })
+    })
+    return () => {
+      active = false
+    }
+  }, [debouncedSearch, branchId, kpiRefreshTick])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchKycQueue(filterParams)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [filterParams, fetchKycQueue])
 
   const handleReset = () => {
     setSearch('')
@@ -168,14 +194,7 @@ export const KycQueuePage: React.FC = () => {
       c.created_at ?? '',
     ])
 
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `kyc-queue-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+    exportToCsv(`kyc-queue-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('KYC Queue exported to CSV.')
   }
 
@@ -187,20 +206,19 @@ export const KycQueuePage: React.FC = () => {
     try {
       const targetStatus = action === 'verify' ? 'verified' : 'expired'
       const updated = await customersApi.update(customer.id, {
-        kyc_status: targetStatus as any,
+        kyc_status: targetStatus,
       })
       setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+      setKpiRefreshTick((t) => t + 1)
       showToast(
         action === 'verify'
           ? `KYC verified and approved for ${customer.full_name}.`
           : `KYC marked as Expired / Rejected for ${customer.full_name}.`
       )
       setConfirmCustomer(null)
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast(
-        err?.response?.data?.message ??
-          err?.message ??
-          `Failed to ${action} customer KYC.`,
+        getErrorMessage(err, `Failed to ${action} customer KYC.`),
         'error'
       )
     } finally {
@@ -212,6 +230,7 @@ export const KycQueuePage: React.FC = () => {
     setCustomers((prev) =>
       prev.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
     )
+    setKpiRefreshTick((t) => t + 1)
     setUploadCustomer(null)
     showToast(`KYC document verified & approved for ${updatedCustomer.full_name}!`)
   }
@@ -221,30 +240,7 @@ export const KycQueuePage: React.FC = () => {
 
   return (
     <div className="al-page">
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 20,
-            right: 24,
-            zIndex: 99999,
-            padding: '12px 20px',
-            borderRadius: 10,
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {toast.type === 'success' ? <CheckCheck size={16} /> : <AlertTriangle size={16} />}
-          {toast.msg}
-        </div>
-      )}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       {/* Header */}
       <div className="al-header">
@@ -293,41 +289,14 @@ export const KycQueuePage: React.FC = () => {
 
       {/* KPI Cards */}
       <div className="al-stats-grid">
-        <div className="al-stat-card" style={{ '--card-accent': '#f59e0b' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-            <Clock size={20} />
-          </div>
-          <span className="al-stat-label">Pending Verification</span>
-          <span className="al-stat-value">{kpiStats.pending}</span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#ef4444' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <span className="al-stat-label">Expired / Rejected</span>
-          <span className="al-stat-value">{kpiStats.expired}</span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#dc2626' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626' }}>
-            <ShieldAlert size={20} />
-          </div>
-          <span className="al-stat-label">High Risk in Queue</span>
-          <span className="al-stat-value">{kpiStats.highRisk}</span>
-        </div>
-
-        <div className="al-stat-card" style={{ '--card-accent': '#22c55e' } as React.CSSProperties}>
-          <div className="al-stat-icon" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
-            <CheckCircle2 size={20} />
-          </div>
-          <span className="al-stat-label">Verified (Page)</span>
-          <span className="al-stat-value">{kpiStats.verified}</span>
-        </div>
+        <StatCard label="Pending Verification" value={kpiStats.pending} icon={<Clock size={20} />} color="#f59e0b" bg="rgba(245,158,11,0.12)" accent="#f59e0b" />
+        <StatCard label="Expired / Rejected" value={kpiStats.expired} icon={<AlertTriangle size={20} />} color="#ef4444" bg="rgba(239,68,68,0.12)" accent="#ef4444" />
+        <StatCard label="High Risk in Queue" value={kpiStats.highRisk} icon={<ShieldAlert size={20} />} color="#dc2626" bg="rgba(220,38,38,0.12)" accent="#dc2626" />
+        <StatCard label="Verified" value={kpiStats.verified} icon={<CheckCircle2 size={20} />} color="#22c55e" bg="rgba(34,197,94,0.12)" accent="#22c55e" />
       </div>
 
       {/* Filters Bar */}
-      <div className="al-filters">
+      <FilterBar>
         <div className="al-search-wrap">
           <Search size={15} className="al-search-icon" />
           <input
@@ -392,7 +361,7 @@ export const KycQueuePage: React.FC = () => {
             <RefreshCw size={14} /> Reset
           </button>
         )}
-      </div>
+      </FilterBar>
 
       {/* Table Card */}
       <div className="al-table-card">
@@ -405,31 +374,28 @@ export const KycQueuePage: React.FC = () => {
         </div>
 
         {error ? (
-          <div className="al-empty">
-            <div className="al-empty-icon">⚠️</div>
-            <h3>Failed to load KYC Queue</h3>
-            <p>{error}</p>
-            <button
-              className="al-btn al-btn-primary"
-              onClick={() => fetchKycQueue({ page, per_page: PER_PAGE })}
-            >
-              Retry
-            </button>
-          </div>
+          <EmptyState
+            icon="⚠️"
+            title="Failed to load KYC Queue"
+            message={error}
+            action={
+              <button className="al-btn al-btn-primary" onClick={() => fetchKycQueue({ page, per_page: PER_PAGE })}>
+                Retry
+              </button>
+            }
+          />
         ) : loading ? (
           <div className="al-loading">
             <div className="al-spinner" />
             <p>Loading KYC verification records…</p>
           </div>
         ) : customers.length === 0 ? (
-          <div className="al-empty">
-            <div className="al-empty-icon">🪪</div>
-            <h3>No customers in KYC queue</h3>
-            <p>No customer records match your filter criteria.</p>
-            <button className="al-btn al-btn-ghost" onClick={handleReset}>
-              Clear Filters
-            </button>
-          </div>
+          <EmptyState
+            icon="🪪"
+            title="No customers in KYC queue"
+            message="No customer records match your filter criteria."
+            action={<button className="al-btn al-btn-ghost" onClick={handleReset}>Clear Filters</button>}
+          />
         ) : (
           <div className="al-table-wrapper">
             <table className="al-table">
@@ -447,7 +413,6 @@ export const KycQueuePage: React.FC = () => {
               <tbody>
                 {customers.map((c) => {
                   const isVerified = c.kyc_status === 'verified'
-                  const isPending = c.kyc_status === 'pending'
                   const isExpired = c.kyc_status === 'expired'
 
                   return (
@@ -486,24 +451,11 @@ export const KycQueuePage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <span
-                          className="al-badge-status"
-                          style={{
-                            textTransform: 'capitalize',
-                            background: isPending
-                              ? 'rgba(245,158,11,0.15)'
-                              : isExpired
-                              ? 'rgba(239,68,68,0.15)'
-                              : 'rgba(34,197,94,0.15)',
-                            color: isPending ? '#f59e0b' : isExpired ? '#ef4444' : '#22c55e',
-                          }}
-                        >
-                          {c.kyc_status ?? 'pending'}
-                        </span>
+                        <StatusBadge status={c.kyc_status ?? 'pending'} variant="kyc" />
                       </td>
                       <td>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -515,6 +467,18 @@ export const KycQueuePage: React.FC = () => {
                             gap: 6,
                           }}
                         >
+                          {/* View KYC Documents drawer */}
+                          <button
+                            className="al-btn al-btn-ghost al-btn-sm cm-kyc-docs-btn"
+                            title="View KYC Documents"
+                            onClick={() => setViewDocsCustomer(c)}
+                          >
+                            <Paperclip size={14} />
+                            {typeof c.document_count === 'number' && c.document_count > 0 && (
+                              <span className="cm-kyc-doc-badge">{c.document_count}</span>
+                            )}
+                          </button>
+
                           {canVerify && (
                             <>
                               <button
@@ -571,31 +535,35 @@ export const KycQueuePage: React.FC = () => {
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="al-pagination">
-            <span className="al-pagination-info">
-              Showing page {page} of {totalPages} ({meta?.total ?? customers.length} total customers)
-            </span>
-            <div className="al-pagination-controls">
-              <button
-                className="al-page-btn"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="al-page-btn active">{page}</span>
-              <button
-                className="al-page-btn"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
+        {totalPages > 1 && meta && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            meta={meta}
+            onPageChange={setPage}
+            variant="simple"
+          />
         )}
       </div>
+
+      {/* View KYC Documents Drawer */}
+      {viewDocsCustomer && (
+        <KycDocumentsDrawer
+          customer={viewDocsCustomer}
+          canUpload={canVerify}
+          isAdmin={role === 'admin'}
+          onClose={() => setViewDocsCustomer(null)}
+          onOpenUpload={() => {
+            setUploadCustomer(viewDocsCustomer)
+            setViewDocsCustomer(null)
+          }}
+          onDocumentDeleted={() => {
+            // Refresh the row's doc count after a deletion
+            setKpiRefreshTick((t) => t + 1)
+            void fetchKycQueue(filterParams)
+          }}
+        />
+      )}
 
       {/* Upload Document Modal */}
       {uploadCustomer && (
@@ -608,74 +576,18 @@ export const KycQueuePage: React.FC = () => {
 
       {/* Quick Verify / Reject Confirmation Modal */}
       {confirmCustomer && (
-        <div className="al-modal-overlay" onClick={() => setConfirmCustomer(null)}>
-          <div className="al-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
-            <div className="al-modal-header">
-              <div
-                className="al-modal-header-icon"
-                style={{
-                  background:
-                    confirmCustomer.action === 'verify'
-                      ? 'rgba(34,197,94,0.15)'
-                      : 'rgba(239,68,68,0.15)',
-                  color: confirmCustomer.action === 'verify' ? '#22c55e' : '#ef4444',
-                }}
-              >
-                {confirmCustomer.action === 'verify' ? (
-                  <CheckCircle2 size={20} />
-                ) : (
-                  <AlertTriangle size={20} />
-                )}
-              </div>
-              <div className="al-modal-header-text">
-                <h3>
-                  {confirmCustomer.action === 'verify'
-                    ? 'Approve & Verify KYC?'
-                    : 'Mark KYC as Expired / Rejected?'}
-                </h3>
-                <p>
-                  Customer: {confirmCustomer.customer.full_name} (
-                  {confirmCustomer.customer.customer_number})
-                </p>
-              </div>
-            </div>
-
-            <div className="al-modal-body">
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>
-                {confirmCustomer.action === 'verify'
-                  ? 'This will mark the customer KYC status as verified, granting full access to bank account operations and credit services.'
-                  : 'This will transition the customer KYC status to expired. Alerts will trigger and restrictions may apply until renewal documents are received.'}
-              </p>
-            </div>
-
-            <div className="al-modal-footer">
-              <button
-                type="button"
-                className="al-btn al-btn-ghost"
-                onClick={() => setConfirmCustomer(null)}
-                disabled={processingAction}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="al-btn al-btn-primary"
-                onClick={executeCustomerAction}
-                disabled={processingAction}
-                style={{
-                  background: confirmCustomer.action === 'verify' ? '#22c55e' : '#ef4444',
-                  borderColor: confirmCustomer.action === 'verify' ? '#16a34a' : '#dc2626',
-                }}
-              >
-                {processingAction
-                  ? 'Processing…'
-                  : confirmCustomer.action === 'verify'
-                  ? 'Confirm Verification'
-                  : 'Confirm Rejection'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={confirmCustomer.action === 'verify' ? 'Approve & Verify KYC?' : 'Mark KYC as Expired / Rejected?'}
+          subtitle={<>Customer: {confirmCustomer.customer.full_name} ({confirmCustomer.customer.customer_number})</>}
+          message={confirmCustomer.action === 'verify'
+            ? 'This will mark the customer KYC status as verified, granting full access to bank account operations and credit services.'
+            : 'This will transition the customer KYC status to expired. Alerts will trigger and restrictions may apply until renewal documents are received.'}
+          confirmLabel={confirmCustomer.action === 'verify' ? 'Confirm Verification' : 'Confirm Rejection'}
+          confirmColor={confirmCustomer.action === 'verify' ? '#22c55e' : '#ef4444'}
+          onConfirm={executeCustomerAction}
+          onCancel={() => setConfirmCustomer(null)}
+          loading={processingAction}
+        />
       )}
     </div>
   )
