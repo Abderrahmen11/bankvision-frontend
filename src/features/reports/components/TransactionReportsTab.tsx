@@ -22,7 +22,7 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import {
   formatCurrency,
   formatCompactNumber,
@@ -30,6 +30,8 @@ import {
   CHART_COLORS,
   CHART_PALETTE
 } from '../reportHelpers'
+import { ReportKpiCard } from './ReportKpiCard'
+import { ReportChartCard } from './ReportChartCard'
 
 interface TransactionReportsTabProps {
   data: ReportsData
@@ -58,65 +60,24 @@ export const TransactionReportsTab: React.FC<TransactionReportsTabProps> = ({ da
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* ── Summary Stats Strip ── */}
       <div className="rp-kpi-grid">
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.primary } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <BarChart3 size={20} />
-          </div>
-          <div className="rp-kpi-label">Total Cleared Volume</div>
-          <div className="rp-kpi-value">{formatCurrency(total_volume, true)}</div>
-          <div className="rp-kpi-sub">{total_count.toLocaleString()} ledger movements</div>
-        </div>
+        <ReportKpiCard icon={<BarChart3 size={20} />} label="Total Cleared Volume" value={formatCurrency(total_volume, true)} accent={CHART_COLORS.primary} subtext={`${total_count.toLocaleString()} ledger movements`} />
 
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.success } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <TrendingUp size={20} />
-          </div>
-          <div className="rp-kpi-label">Average Transaction Size</div>
-          <div className="rp-kpi-value">
-            {formatCurrency(total_count > 0 ? total_volume / total_count : 0)}
-          </div>
-          <div className="rp-kpi-sub">Across all transaction types</div>
-        </div>
+        <ReportKpiCard icon={<TrendingUp size={20} />} label="Average Transaction Size" value={formatCurrency(total_count > 0 ? total_volume / total_count : 0)} accent={CHART_COLORS.success} subtext="Across all transaction types" />
 
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.warning } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <ShieldCheck size={20} />
-          </div>
-          <div className="rp-kpi-label">High-Value Transfers</div>
-          <div className="rp-kpi-value">{high_value_transactions?.length || 0}</div>
-          <div className="rp-kpi-sub">Transactions exceeding $10,000</div>
-        </div>
-
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.info } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <Send size={20} />
-          </div>
-          <div className="rp-kpi-label">Top Transaction Channel</div>
-          <div className="rp-kpi-value">
-            {channelChartData[0]?.name || 'ONLINE'}
-          </div>
-          <div className="rp-kpi-sub">
-            {formatCurrency(channelChartData[0]?.value || 0, true)} cleared
-          </div>
-        </div>
+        <ReportKpiCard icon={<ShieldCheck size={20} />} label="High-Value Transfers" value={high_value_transactions?.length || 0} accent={CHART_COLORS.warning} subtext="Transactions exceeding $10,000" />
+        <ReportKpiCard
+          icon={<Send size={20} />}
+          label="Top Transaction Channel"
+          value={channelChartData[0]?.name || 'ONLINE'}
+          accent={CHART_COLORS.info}
+          subtext={`${formatCurrency(channelChartData[0]?.value || 0, true)} cleared`}
+        />
       </div>
 
       {/* ── Charts Row 1: Volume by Type & Volume by Channel ── */}
       <div className="rp-grid-2">
         {/* Bar chart: Transaction Volume by Type */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <BarChart3 size={18} color={CHART_COLORS.primary} />
@@ -150,10 +111,10 @@ export const TransactionReportsTab: React.FC<TransactionReportsTabProps> = ({ da
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
 
         {/* Pie chart: Transaction Volume by Channel */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <PieChartIcon size={18} color={CHART_COLORS.success} />
@@ -173,8 +134,8 @@ export const TransactionReportsTab: React.FC<TransactionReportsTabProps> = ({ da
                     outerRadius={90}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }: any) =>
-                      `${name} (${((percent || 0) * 100).toFixed(0)}%)`
+                    label={(props) =>
+                      `${String(props.name ?? '')} (${((Number(props.percent) || 0) * 100).toFixed(0)}%)`
                     }
                     labelLine={false}
                   >
@@ -199,7 +160,7 @@ export const TransactionReportsTab: React.FC<TransactionReportsTabProps> = ({ da
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
       </div>
 
       {/* ── Charts Row 2: Daily / Monthly Trend (Line Chart) ── */}
