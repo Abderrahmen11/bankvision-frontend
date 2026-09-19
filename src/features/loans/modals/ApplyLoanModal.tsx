@@ -1,10 +1,10 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState, useEffect } from 'react'
 import { X, PlusCircle, Search, DollarSign } from 'lucide-react'
-import { loansApi } from '@/api/loans'
-import { customersApi } from '@/api/customers'
-import { showToast } from '@/hooks/useToast'
-import type { ApplyLoanPayload, LoanType } from '@/types/loan'
-import type { Customer } from '@/types/customer'
+import { loansApi } from '@/features/loans/api/loans'
+import { customersApi } from '@/features/customers/api/customers'
+import type { ApplyLoanPayload, LoanType } from '@/features/loans/types'
+import type { Customer } from '@/features/customers/types'
 import { calculateMonthlyPayment, formatCurrency } from '../loanHelpers'
 
 interface Props {

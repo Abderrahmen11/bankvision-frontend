@@ -1,8 +1,8 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, Edit3, AlertCircle } from 'lucide-react'
-import { loansApi } from '@/api/loans'
-import { showToast } from '@/hooks/useToast'
-import type { Loan, LoanStatus, UpdateLoanPayload } from '@/types/loan'
+import { loansApi } from '@/features/loans/api/loans'
+import type { Loan, LoanStatus, UpdateLoanPayload } from '@/features/loans/types'
 import { formatCurrency } from '../loanHelpers'
 
 interface Props {
