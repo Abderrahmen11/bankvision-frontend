@@ -22,13 +22,15 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import {
   formatCurrency,
   formatCompactNumber,
   formatPercent,
   CHART_COLORS
 } from '../reportHelpers'
+import { ReportKpiCard } from './ReportKpiCard'
+import { ReportChartCard } from './ReportChartCard'
 
 interface LoanReportsTabProps {
   data: ReportsData
@@ -78,74 +80,26 @@ export const LoanReportsTab: React.FC<LoanReportsTabProps> = ({ data }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* ── Summary Cards ── */}
       <div className="rp-kpi-grid">
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.primary } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <CreditCard size={20} />
-          </div>
-          <div className="rp-kpi-label">Gross Loan Principal</div>
-          <div className="rp-kpi-value">
-            {formatCurrency(portfolio_summary.total_principal, true)}
-          </div>
-          <div className="rp-kpi-sub">{portfolio_summary.total_loans} total loans issued</div>
-        </div>
+        <ReportKpiCard icon={<CreditCard size={20} />} label="Gross Loan Principal" value={formatCurrency(portfolio_summary.total_principal, true)} accent={CHART_COLORS.primary} subtext={`${portfolio_summary.total_loans} total loans issued`} />
 
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.warning } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <Layers size={20} />
-          </div>
-          <div className="rp-kpi-label">Outstanding Balance</div>
-          <div className="rp-kpi-value">
-            {formatCurrency(portfolio_summary.total_outstanding, true)}
-          </div>
-          <div className="rp-kpi-sub">{portfolio_summary.active_loans} currently active loans</div>
-        </div>
+        <ReportKpiCard icon={<Layers size={20} />} label="Outstanding Balance" value={formatCurrency(portfolio_summary.total_outstanding, true)} accent={CHART_COLORS.warning} subtext={`${portfolio_summary.active_loans} currently active loans`} />
 
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.info } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <Percent size={20} />
-          </div>
-          <div className="rp-kpi-label">Weighted Avg Interest</div>
-          <div className="rp-kpi-value">
-            {formatPercent(portfolio_summary.avg_interest_rate)}
-          </div>
-          <div className="rp-kpi-sub">Annual Percentage Yield</div>
-        </div>
+        <ReportKpiCard icon={<Percent size={20} />} label="Weighted Avg Interest" value={formatPercent(portfolio_summary.avg_interest_rate)} accent={CHART_COLORS.info} subtext="Annual Percentage Yield" />
 
-        <div
-          className="rp-kpi-card"
-          style={{
-            '--rp-kpi-color':
-              portfolio_summary.delinquency_rate > 5 ? CHART_COLORS.danger : CHART_COLORS.success
-          } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <AlertTriangle size={20} />
-          </div>
-          <div className="rp-kpi-label">Delinquency Rate</div>
-          <div
-            className={`rp-kpi-value ${
-              portfolio_summary.delinquency_rate > 5 ? 'rp-negative' : 'rp-positive'
-            }`}
-          >
-            {formatPercent(portfolio_summary.delinquency_rate)}
-          </div>
-          <div className="rp-kpi-sub">NPL Ratio: {formatPercent(portfolio_summary.npl_ratio)}</div>
-        </div>
+        <ReportKpiCard
+          icon={<AlertTriangle size={20} />}
+          label="Delinquency Rate"
+          value={formatPercent(portfolio_summary.delinquency_rate)}
+          accent={portfolio_summary.delinquency_rate > 5 ? CHART_COLORS.danger : CHART_COLORS.success}
+          valueClassName={portfolio_summary.delinquency_rate > 5 ? 'rp-negative' : 'rp-positive'}
+          subtext={`NPL Ratio: ${formatPercent(portfolio_summary.npl_ratio)}`}
+        />
       </div>
 
       {/* ── Charts Row: Performance by Type & Approval Ratio ── */}
       <div className="rp-grid-2">
         {/* Loan Performance by Type */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <CreditCard size={18} color={CHART_COLORS.primary} />
@@ -180,10 +134,10 @@ export const LoanReportsTab: React.FC<LoanReportsTabProps> = ({ data }) => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
 
         {/* Approval / Rejection Ratio Donut */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <PieChartIcon size={18} color={CHART_COLORS.success} />
@@ -205,7 +159,7 @@ export const LoanReportsTab: React.FC<LoanReportsTabProps> = ({ data }) => {
                     outerRadius={90}
                     paddingAngle={4}
                     dataKey="value"
-                    label={({ name, value }: any) => `${name}: ${value}`}
+                    label={(props) => `${String(props.name ?? '')}: ${String(props.value ?? '')}`}
                     labelLine={false}
                   >
                     {approvalData.map((entry, index) => (
@@ -225,11 +179,11 @@ export const LoanReportsTab: React.FC<LoanReportsTabProps> = ({ data }) => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
       </div>
 
       {/* ── Delinquency Trends Line Chart ── */}
-      <div className="rp-card">
+      <ReportChartCard>
         <div className="rp-card-header">
           <h3 className="rp-card-title">
             <TrendingDown size={18} color={CHART_COLORS.danger} />
@@ -268,7 +222,7 @@ export const LoanReportsTab: React.FC<LoanReportsTabProps> = ({ data }) => {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      </ReportChartCard>
 
       {/* ── Table: Loan Performance Breakdown ── */}
       <div className="rp-card">
