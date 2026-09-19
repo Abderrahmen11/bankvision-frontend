@@ -1,5 +1,6 @@
-import type { LoanType, LoanStatus } from '@/types/loan'
-import type { UserRole } from '@/types/user'
+import { formatDateLocale, formatMoney } from '@/shared/utils'
+import type { LoanType, LoanStatus } from '@/features/loans/types'
+import type { UserRole } from '@/shared/types/user'
 
 /* ── Loan Type Config ── */
 export const LOAN_TYPE_CONFIG: Record<
@@ -198,16 +199,10 @@ export function generateAmortizationSchedule(
 
 export function formatCurrency(
   amount: number | string | undefined | null,
-  currency = 'USD'
+  _currency?: string
 ): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0)
-  if (isNaN(num)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+  // Fixed display currency: TND
+  return formatMoney(amount)
 }
 
 export function formatPercent(rate: number | string | undefined | null): string {
@@ -219,7 +214,7 @@ export function formatPercent(rate: number | string | undefined | null): string 
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr)
   } catch {
     return dateStr
   }
@@ -228,10 +223,10 @@ export function formatDate(dateStr: string | null | undefined): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
