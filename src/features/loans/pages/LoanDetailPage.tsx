@@ -12,10 +12,11 @@ import {
   ExternalLink,
   Clock,
 } from 'lucide-react'
-import { loansApi } from '@/api/loans'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Loan } from '@/types/loan'
+import { loansApi } from '../api/loans'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { useAuth } from '@/shared/hooks'
+import { showToast } from '@/shared/hooks'
+import type { Loan } from '../types'
 import {
   LOAN_TYPE_CONFIG,
   LOAN_STATUS_CONFIG,
@@ -30,8 +31,8 @@ import {
   canApproveLoan,
   canUpdateLoan,
   isComplianceRole,
-} from './loanHelpers'
-import { UpdateLoanModal } from './modals/UpdateLoanModal'
+} from '../loanHelpers'
+import { UpdateLoanModal } from '../modals/UpdateLoanModal'
 import './LoanManagement.css'
 
 export const LoanDetailPage: React.FC = () => {
@@ -64,23 +65,50 @@ export const LoanDetailPage: React.FC = () => {
   }, [id])
 
   useEffect(() => {
-    fetchLoan()
-  }, [fetchLoan])
-
-  const handleApprove = async () => {
-    if (!loan) return
-    if (!window.confirm(`Approve loan ${loan.loan_number} and disburse funds?`)) return
-    setActionLoading(true)
-    try {
-      const updated = await loansApi.approve(loan.id)
-      setLoan(updated)
-      showToast.success('Loan approved and activated!')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to approve loan.'
-      showToast.error(msg)
-    } finally {
-      setActionLoading(false)
+    let cancelled = false
+    if (!id) return
+    loansApi
+      .get(id)
+      .then((data) => {
+        if (!cancelled) setLoan(data)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : 'Failed to fetch loan details.'
+          showToast.error(msg)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
     }
+  }, [id])
+
+  const [confirm, setConfirm] = useState<{ title: string; message: string; confirmLabel: string; danger: boolean; run: () => Promise<void> } | null>(null)
+
+  const handleApprove = () => {
+    if (!loan) return
+    setConfirm({
+      title: 'Approve loan',
+      message: `Approve loan ${loan.loan_number} and disburse funds?`,
+      confirmLabel: 'Approve',
+      danger: false,
+      run: async () => {
+        setActionLoading(true)
+        try {
+          const updated = await loansApi.approve(loan.id)
+          setLoan(updated)
+          showToast.success('Loan approved and activated!')
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to approve loan.'
+          showToast.error(msg)
+        } finally {
+          setActionLoading(false)
+        }
+      },
+    })
   }
 
   if (loading) {
@@ -478,6 +506,16 @@ export const LoanDetailPage: React.FC = () => {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onConfirm={() => { confirm?.run() }}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   )
 }
