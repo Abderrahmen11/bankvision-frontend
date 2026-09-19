@@ -87,9 +87,6 @@ export function canUpdateLoan(role?: UserRole): boolean {
   return role === 'admin' || role === 'manager'
 }
 
-export function isReadOnlyRole(role?: UserRole): boolean {
-  return role === 'csr' || role === 'analyst' || role === 'auditor'
-}
 
 export function isComplianceRole(role?: UserRole): boolean {
   return role === 'compliance'
