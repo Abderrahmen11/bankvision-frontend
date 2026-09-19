@@ -42,8 +42,8 @@ export const ApplyLoanModal: React.FC<Props> = ({ onClose, onSuccess, defaultCus
   // Debounced search for customers
   useEffect(() => {
     if (!customerSearch.trim()) {
-      setCustomerResults([])
-      return
+      const clearTimer = setTimeout(() => setCustomerResults([]), 0)
+      return () => clearTimeout(clearTimer)
     }
     const timer = setTimeout(async () => {
       setSearchLoading(true)
