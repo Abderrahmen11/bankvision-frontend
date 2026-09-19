@@ -235,6 +235,7 @@ export const ApplyLoanModal: React.FC<Props> = ({ onClose, onSuccess, defaultCus
                 <label className="ln-form-label">Principal Amount ($) *</label>
                 <input
                   type="number"
+                    inputMode="decimal"
                   step="0.01"
                   min="1"
                   className="ln-form-input"
@@ -249,6 +250,7 @@ export const ApplyLoanModal: React.FC<Props> = ({ onClose, onSuccess, defaultCus
                 <label className="ln-form-label">Interest Rate (% APR) *</label>
                 <input
                   type="number"
+                    inputMode="decimal"
                   step="0.01"
                   min="0"
                   max="100"

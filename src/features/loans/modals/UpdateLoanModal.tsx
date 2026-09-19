@@ -84,6 +84,7 @@ export const UpdateLoanModal: React.FC<Props> = ({ loan, onClose, onSuccess }) =
               <label className="ln-form-label">Outstanding Balance ($) *</label>
               <input
                 type="number"
+                    inputMode="decimal"
                 step="0.01"
                 min="0"
                 className="ln-form-input"
