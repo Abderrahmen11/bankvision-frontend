@@ -77,7 +77,8 @@ export function useDashboardLayout(role: UserRole) {
   }, [role])
 
   useEffect(() => {
-    fetchLayout()
+    const timer = setTimeout(() => { void fetchLayout() }, 0)
+    return () => clearTimeout(timer)
   }, [fetchLayout])
 
   // Persist layout to backend and localStorage
@@ -92,14 +93,14 @@ export function useDashboardLayout(role: UserRole) {
           widgets: newWidgets,
         })
         setIsDefault(false)
-        if (notify) {
-          showToast.success('Dashboard layout saved successfully.')
-        }
+        showToast.success(
+          notify
+            ? 'Dashboard layout saved successfully.'
+            : 'Dashboard layout saved.'
+        )
       } catch (err) {
         console.error('Failed to save layout to backend:', err)
-        if (notify) {
-          showToast.error('Layout saved locally, but server update failed.')
-        }
+        showToast.error('Layout saved locally, but server update failed.')
       } finally {
         setIsSaving(false)
       }

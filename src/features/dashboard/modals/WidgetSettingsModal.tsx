@@ -24,12 +24,15 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
 
   useEffect(() => {
     if (widget) {
-      setTitle(widget.title || '')
-      setRefreshInterval(widget.settings?.refreshInterval ?? 60)
-      setDays(widget.settings?.days ?? 30)
-      setChartType(widget.settings?.chartType ?? 'area')
-      setLimit(widget.settings?.limit ?? 10)
-      setSeverity(widget.settings?.severity ?? 'all')
+      const timer = setTimeout(() => {
+        setTitle(widget.title || '')
+        setRefreshInterval(widget.settings?.refreshInterval ?? 60)
+        setDays(widget.settings?.days ?? 30)
+        setChartType(widget.settings?.chartType ?? 'area')
+        setLimit(widget.settings?.limit ?? 10)
+        setSeverity(widget.settings?.severity ?? 'all')
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [widget])
 
