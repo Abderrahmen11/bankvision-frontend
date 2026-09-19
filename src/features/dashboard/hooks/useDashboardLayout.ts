@@ -121,33 +121,65 @@ export function useDashboardLayout(role: UserRole) {
     [persistLayout]
   )
 
-  // Update positions from react-grid-layout changes
+  // Update positions from react-grid-layout changes.
+  // `lg` writes the 12-column desktop arrangement; `md` writes a separate
+  // md-only position so the desktop layout is never degraded by the 10-column
+  // breakpoint (and is restored intact when the viewport grows back).
   const updateWidgetPositions = useCallback(
-    (newPositions: readonly { i: string; x: number; y: number; w: number; h: number }[]) => {
+    (
+      newPositions: readonly { i: string; x: number; y: number; w: number; h: number }[],
+      breakpoint: 'lg' | 'md' = 'lg'
+    ) => {
       setWidgets((prevWidgets) => {
         let changed = false
         const updated = prevWidgets.map((w) => {
           const matched = newPositions.find((pos) => pos.i === w.id)
-          if (
-            matched &&
-            (w.position.x !== matched.x ||
-              w.position.y !== matched.y ||
-              w.position.w !== matched.w ||
-              w.position.h !== matched.h)
-          ) {
+          if (!matched) return w
+
+          if (breakpoint === 'md') {
+            const current = w.position.md
+            if (
+              current &&
+              current.x === matched.x &&
+              current.y === matched.y &&
+              current.w === matched.w &&
+              current.h === matched.h
+            ) {
+              return w
+            }
             changed = true
             return {
               ...w,
               position: {
                 ...w.position,
-                x: matched.x,
-                y: matched.y,
-                w: matched.w,
-                h: matched.h,
+                md: { x: matched.x, y: matched.y, w: matched.w, h: matched.h },
               },
             }
           }
-          return w
+
+          // lg: only a real desktop change invalidates saved md positions —
+          // they were derived from the old arrangement.
+          const { md: _savedMd, ...base } = w.position
+          const baseChanged =
+            base.x !== matched.x ||
+            base.y !== matched.y ||
+            base.w !== matched.w ||
+            base.h !== matched.h
+          if (!baseChanged) return w
+          changed = true
+          return {
+            ...w,
+            position: {
+              x: matched.x,
+              y: matched.y,
+              w: matched.w,
+              h: matched.h,
+              minW: base.minW,
+              minH: base.minH,
+              maxW: base.maxW,
+              maxH: base.maxH,
+            },
+          }
         })
 
         if (changed) {
