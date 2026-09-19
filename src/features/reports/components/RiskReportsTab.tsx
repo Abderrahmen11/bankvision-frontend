@@ -22,12 +22,14 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import {
   formatPercent,
   CHART_COLORS,
   RISK_COLORS
 } from '../reportHelpers'
+import { ReportKpiCard } from './ReportKpiCard'
+import { ReportChartCard } from './ReportChartCard'
 
 interface RiskReportsTabProps {
   data: ReportsData
@@ -76,73 +78,19 @@ export const RiskReportsTab: React.FC<RiskReportsTabProps> = ({ data }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* ── KPI Grid ── */}
       <div className="rp-kpi-grid">
-        <div
-          className="rp-kpi-card"
-          style={{
-            '--rp-kpi-color':
-              customer_risk.high_pct > 15 ? CHART_COLORS.danger : CHART_COLORS.warning
-          } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <UserX size={20} />
-          </div>
-          <div className="rp-kpi-label">High-Risk Customer Pool</div>
-          <div className="rp-kpi-value">{customer_risk.high_risk}</div>
-          <div className="rp-kpi-sub">{formatPercent(customer_risk.high_pct)} of portfolio</div>
-        </div>
+        <ReportKpiCard icon={<UserX size={20} />} label="High-Risk Customer Pool" value={customer_risk.high_risk} accent={customer_risk.high_pct > 15 ? CHART_COLORS.danger : CHART_COLORS.warning} subtext={`${formatPercent(customer_risk.high_pct)} of portfolio`} />
 
-        <div
-          className="rp-kpi-card"
-          style={{
-            '--rp-kpi-color': npl_ratio > 3 ? CHART_COLORS.danger : CHART_COLORS.success
-          } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <TrendingDown size={20} />
-          </div>
-          <div className="rp-kpi-label">Portfolio NPL Ratio</div>
-          <div
-            className={`rp-kpi-value ${
-              npl_ratio > 3 ? 'rp-negative' : 'rp-positive'
-            }`}
-          >
-            {formatPercent(npl_ratio)}
-          </div>
-          <div className="rp-kpi-sub">Regulatory threshold: &lt; 3.00%</div>
-        </div>
+        <ReportKpiCard icon={<TrendingDown size={20} />} label="Portfolio NPL Ratio" value={formatPercent(npl_ratio)} accent={npl_ratio > 3 ? CHART_COLORS.danger : CHART_COLORS.success} valueClassName={npl_ratio > 3 ? 'rp-negative' : 'rp-positive'} subtext={<>Regulatory threshold: &lt; 3.00%</>} />
 
-        <div
-          className="rp-kpi-card"
-          style={{
-            '--rp-kpi-color':
-              aml_alerts.open > 0 ? CHART_COLORS.danger : CHART_COLORS.success
-          } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <ShieldAlert size={20} />
-          </div>
-          <div className="rp-kpi-label">Active AML Alerts</div>
-          <div className="rp-kpi-value">{aml_alerts.open}</div>
-          <div className="rp-kpi-sub">{aml_alerts.critical || 0} Critical priority</div>
-        </div>
+        <ReportKpiCard icon={<ShieldAlert size={20} />} label="Active AML Alerts" value={aml_alerts.open} accent={aml_alerts.open > 0 ? CHART_COLORS.danger : CHART_COLORS.success} subtext={`${aml_alerts.critical || 0} Critical priority`} />
 
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.info } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <FileCheck size={20} />
-          </div>
-          <div className="rp-kpi-label">KYC Compliance Rate</div>
-          <div className="rp-kpi-value">{formatPercent(kycComplianceRate, 1)}</div>
-          <div className="rp-kpi-sub">{kyc_status?.verified || 0} verified accounts</div>
-        </div>
+        <ReportKpiCard icon={<FileCheck size={20} />} label="KYC Compliance Rate" value={formatPercent(kycComplianceRate, 1)} accent={CHART_COLORS.info} subtext={`${kyc_status?.verified || 0} verified accounts`} />
       </div>
 
       {/* ── Charts Row 1: Customer Risk & NPL Trend ── */}
       <div className="rp-grid-2">
         {/* Customer Risk Donut */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <PieChartIcon size={18} color={CHART_COLORS.warning} />
@@ -162,8 +110,8 @@ export const RiskReportsTab: React.FC<RiskReportsTabProps> = ({ data }) => {
                     outerRadius={90}
                     paddingAngle={4}
                     dataKey="value"
-                    label={({ name, percent }: any) =>
-                      `${name} (${((percent || 0) * 100).toFixed(0)}%)`
+                    label={(props) =>
+                      `${String(props.name ?? '')} (${((Number(props.percent) || 0) * 100).toFixed(0)}%)`
                     }
                     labelLine={false}
                   >
@@ -185,10 +133,10 @@ export const RiskReportsTab: React.FC<RiskReportsTabProps> = ({ data }) => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
 
         {/* NPL Ratio Trend Line */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <TrendingDown size={18} color={CHART_COLORS.danger} />
@@ -227,11 +175,11 @@ export const RiskReportsTab: React.FC<RiskReportsTabProps> = ({ data }) => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
       </div>
 
       {/* ── Charts Row 2: Compliance Pipeline Status ── */}
-      <div className="rp-card">
+      <ReportChartCard>
         <div className="rp-card-header">
           <h3 className="rp-card-title">
             <FileCheck size={18} color={CHART_COLORS.info} />
@@ -267,7 +215,7 @@ export const RiskReportsTab: React.FC<RiskReportsTabProps> = ({ data }) => {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      </ReportChartCard>
 
       {/* ── Table: Branch Risk Comparison Matrix ── */}
       <div className="rp-card">
