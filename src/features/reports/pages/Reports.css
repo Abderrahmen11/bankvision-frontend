@@ -1,0 +1,683 @@
+/* ============================================================
+   Reports & Analytics – scoped styles (rp- prefix)
+   Uses BankVision CSS custom properties for consistent theming
+   ============================================================ */
+
+/* ── Page Shell ──────────────────────────────────────────── */
+.rp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  min-height: calc(100vh - 64px);
+  background: var(--bg-primary, #0f1117);
+}
+
+/* ── Page Header ─────────────────────────────────────────── */
+.rp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rp-header-left h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, var(--slate-100));
+  margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rp-header-left p {
+  font-size: 0.85rem;
+  color: var(--text-tertiary, var(--slate-500));
+  margin: 0;
+}
+
+.rp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Controls Bar ────────────────────────────────────────── */
+.rp-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--bg-surface, #1a1f2e);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.rp-period-tabs {
+  display: flex;
+  background: var(--bg-primary, #0f1117);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.rp-period-tab {
+  background: none;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--slate-500));
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.rp-period-tab:hover {
+  color: var(--text-primary, var(--slate-100));
+  background: var(--bg-elevated, #252d3d);
+}
+
+.rp-period-tab.active {
+  background: var(--accent-primary, var(--primary-500));
+  color: #fff;
+}
+
+.rp-date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rp-date-input {
+  background: var(--bg-primary, #0f1117);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 8px;
+  color: var(--text-primary, var(--slate-100));
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.rp-date-input:focus {
+  outline: none;
+  border-color: var(--accent-primary, var(--primary-500));
+}
+
+.rp-controls-spacer { flex: 1; }
+
+/* ── Export Buttons ──────────────────────────────────────── */
+.rp-export-group {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.rp-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.rp-export-btn-csv {
+  background: rgba(60, 184, 120, 0.12);
+  border-color: rgba(60, 184, 120, 0.25);
+  color: var(--emerald-500);
+}
+
+.rp-export-btn-csv:hover { background: rgba(60, 184, 120, 0.22); }
+
+.rp-export-btn-excel {
+  background: rgba(123, 150, 217, 0.12);
+  border-color: rgba(123, 150, 217, 0.25);
+  color: var(--cyan-500);
+}
+
+.rp-export-btn-excel:hover { background: rgba(123, 150, 217, 0.22); }
+
+.rp-export-btn-pdf {
+  background: rgba(224, 92, 92, 0.12);
+  border-color: rgba(224, 92, 92, 0.25);
+  color: var(--rose-500);
+}
+
+.rp-export-btn-pdf:hover { background: rgba(224, 92, 92, 0.22); }
+
+.rp-schedule-btn {
+  background: rgba(201, 168, 106, 0.12);
+  border-color: rgba(201, 168, 106, 0.25);
+  color: var(--primary-500);
+}
+
+.rp-schedule-btn:hover { background: rgba(201, 168, 106, 0.22); }
+
+/* ── Tab Navigation ──────────────────────────────────────── */
+.rp-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border-subtle, var(--slate-700));
+  overflow-x: auto;
+}
+
+.rp-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border: none;
+  background: none;
+  color: var(--text-secondary, var(--slate-400));
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.rp-tab:hover { color: var(--text-primary, var(--slate-100)); }
+
+.rp-tab.active {
+  color: var(--accent-primary, var(--primary-500));
+  border-bottom-color: var(--accent-primary, var(--primary-500));
+}
+
+/* ── KPI Cards ───────────────────────────────────────────── */
+.rp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.rp-kpi-card {
+  background: var(--bg-surface, #1a1f2e);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 12px;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.rp-kpi-card:hover {
+  border-color: var(--accent-primary, var(--primary-500));
+  transform: translateY(-1px);
+}
+
+.rp-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rp-kpi-color, var(--primary-500)), transparent);
+}
+
+.rp-kpi-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  background: rgba(var(--rp-kpi-rgb, 99, 102, 241), 0.15);
+  color: var(--rp-kpi-color, var(--primary-500));
+  margin-bottom: 0.75rem;
+}
+
+.rp-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--slate-500));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.rp-kpi-value {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: var(--text-primary, var(--slate-100));
+  line-height: 1;
+  margin-bottom: 0.375rem;
+}
+
+.rp-kpi-sub {
+  font-size: 0.78rem;
+  color: var(--text-tertiary, var(--slate-500));
+}
+
+.rp-kpi-delta {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rp-kpi-delta.positive { background: rgba(60, 184, 120,0.15); color: var(--emerald-500); }
+.rp-kpi-delta.negative { background: rgba(224, 92, 92,0.15);  color: var(--rose-500); }
+
+/* ── Content Card (generic) ──────────────────────────────── */
+.rp-card {
+  background: var(--bg-surface, #1a1f2e);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rp-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle, var(--slate-700));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rp-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, var(--slate-100));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.rp-card-body {
+  padding: 1.25rem;
+}
+
+/* ── Chart Containers ────────────────────────────────────── */
+.rp-chart-container {
+  width: 100%;
+  height: 280px;
+}
+
+.rp-chart-container-lg {
+  width: 100%;
+  height: 350px;
+}
+
+.rp-chart-container-sm {
+  width: 100%;
+  height: 200px;
+}
+
+/* ── Two-Column Grid ─────────────────────────────────────── */
+.rp-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.rp-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .rp-grid-2, .rp-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Financial Statement Tables ──────────────────────────── */
+.rp-statement-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rp-statement-table th {
+  text-align: left;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--text-tertiary, var(--slate-500));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle, var(--slate-700));
+}
+
+.rp-statement-table th:last-child,
+.rp-statement-table td:last-child { text-align: right; }
+
+.rp-statement-table td {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, var(--slate-400));
+  border-bottom: 1px solid rgba(45,55,72,0.4);
+  transition: background 0.1s;
+}
+
+.rp-statement-table tr:hover td { background: var(--bg-elevated, #252d3d); }
+
+.rp-statement-row-section td {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-tertiary, var(--slate-500));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-top: 1rem;
+  border-bottom: none;
+}
+
+.rp-statement-row-total td {
+  font-weight: 700;
+  color: var(--text-primary, var(--slate-100));
+  border-top: 1px solid var(--border-subtle, var(--slate-700));
+  font-size: 0.925rem;
+}
+
+.rp-statement-row-indent td:first-child { padding-left: 2rem; }
+
+.rp-positive { color: var(--emerald-500) !important; }
+.rp-negative { color: var(--rose-500) !important; }
+
+/* ── Sub-tabs (Financial sub-nav) ────────────────────────── */
+.rp-sub-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-primary, #0f1117);
+  border: 1px solid var(--border-subtle, var(--slate-700));
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 1.25rem;
+}
+
+.rp-sub-tab {
+  padding: 0.45rem 1rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary, var(--slate-400));
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: all 0.15s;
+}
+
+.rp-sub-tab:hover { color: var(--text-primary, var(--slate-100)); }
+.rp-sub-tab.active {
+  background: var(--accent-primary, var(--primary-500));
+  color: #fff;
+}
+
+/* ── Status Badges ───────────────────────────────────────── */
+.rp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.rp-badge-success  { background: rgba(60, 184, 120,0.15);  color: var(--emerald-500); }
+.rp-badge-warning  { background: rgba(223, 166, 64,0.15);  color: var(--amber-500); }
+.rp-badge-danger   { background: rgba(224, 92, 92,0.15);   color: var(--rose-500); }
+.rp-badge-info     { background: rgba(123, 150, 217,0.15);  color: var(--cyan-500); }
+.rp-badge-neutral  { background: rgba(107,114,128,0.15); color: var(--slate-400); }
+
+/* ── Data Table ──────────────────────────────────────────── */
+.rp-table-wrap { overflow-x: auto; }
+
+.rp-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.rp-data-table th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary, var(--slate-500));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  background: var(--bg-primary, #0f1117);
+  border-bottom: 1px solid var(--border-subtle, var(--slate-700));
+}
+
+.rp-data-table td {
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary, var(--slate-400));
+  border-bottom: 1px solid rgba(45,55,72,0.35);
+}
+
+.rp-data-table tr:last-child td { border-bottom: none; }
+.rp-data-table tr:hover td { background: var(--bg-elevated, #252d3d); }
+.rp-data-table td:first-child { color: var(--text-primary, var(--slate-100)); font-weight: 500; }
+
+/* ── Skeleton Loading ────────────────────────────────────── */
+.rp-skeleton {
+  background: linear-gradient(90deg,
+    var(--bg-elevated, #252d3d) 25%,
+    var(--bg-surface, #1a1f2e) 50%,
+    var(--bg-elevated, #252d3d) 75%);
+  background-size: 200% 100%;
+  animation: rp-shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes rp-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.rp-skeleton-kpi {
+  height: 110px;
+  border-radius: 12px;
+}
+
+.rp-skeleton-chart {
+  height: 280px;
+  border-radius: 12px;
+}
+
+/* ── Custom Recharts Tooltip ─────────────────────────────── */
+.rp-tooltip {
+  background: var(--bg-elevated, #252d3d) !important;
+  border: 1px solid var(--border-subtle, var(--slate-700)) !important;
+  border-radius: 8px !important;
+  padding: 0.75rem !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+}
+
+.rp-tooltip-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary, var(--slate-500));
+  margin-bottom: 0.25rem;
+}
+
+.rp-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary, var(--slate-400));
+}
+
+.rp-tooltip-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+/* ── Legend ──────────────────────────────────────────────── */
+.rp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  justify-content: center;
+}
+
+.rp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary, var(--slate-400));
+}
+
+.rp-legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Empty / Error States ────────────────────────────────── */
+.rp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--text-tertiary, var(--slate-500));
+  text-align: center;
+}
+
+.rp-empty-icon {
+  font-size: 2.5rem;
+  opacity: 0.4;
+}
+
+.rp-error-banner {
+  background: rgba(224, 92, 92,0.1);
+  border: 1px solid rgba(224, 92, 92,0.3);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--rose-500);
+  font-size: 0.875rem;
+}
+
+/* ── Print styles ────────────────────────────────────────── */
+@media print {
+  .rp-controls,
+  .rp-tabs,
+  .rp-header-actions,
+  .rp-export-group { display: none !important; }
+
+  .rp-page {
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .rp-card {
+    break-inside: avoid;
+    border: 1px solid var(--slate-200);
+    background: #fff;
+    color: #000;
+  }
+
+  .rp-kpi-value, .rp-card-title, .rp-header-left h1 { color: #000; }
+  .rp-statement-table td, .rp-data-table td { color: var(--slate-700); }
+}
+
+/* ── Mobile (≤767px): filter bar wraps, date inputs stack ─────────────────
+   Lives here (not mobile.css) because this file is imported after the global
+   mobile layer and must win the cascade for these component classes. */
+@media (max-width: 767px) {
+  .rp-page {
+    padding: 1rem;
+  }
+
+  .rp-controls {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rp-period-tabs {
+    flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Calendar icon spans both rows; each date gets a full-width row */
+  .rp-date-inputs {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rp-date-inputs > svg {
+    grid-row: 1 / span 2;
+  }
+
+  .rp-date-inputs > span {
+    display: none;
+  }
+
+  .rp-date-inputs > input {
+    grid-column: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Branch selector shares its row with the building icon */
+  .rp-branch-row {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rp-date-input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Pie segment labels overflow the SVG on narrow screens — the legend
+     below the chart carries the same information */
+  @media (max-width: 480px) {
+    .recharts-pie-labels,
+    .recharts-pie-label-text {
+      display: none;
+    }
+  }
+}
+
+
+/* ── Night Ledger refinements (appended) ─────────────────────────── */
+.rp-data-table thead th,
+.rp-statement-table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border-subtle-hover);
+  box-shadow: 0 3px 0 -2px var(--border-subtle);
+}
+
+.rp-badge {
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
