@@ -17,12 +17,13 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import {
   formatCurrency,
   formatPercent,
   CHART_COLORS
 } from '../reportHelpers'
+import { ReportChartCard } from './ReportChartCard'
 
 interface FinancialReportsTabProps {
   data: ReportsData
@@ -94,7 +95,7 @@ export const FinancialReportsTab: React.FC<FinancialReportsTabProps> = ({ data }
                 <tr>
                   <th>Financial Line Item</th>
                   <th>Classification</th>
-                  <th>Amount (USD)</th>
+                  <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,7 +195,7 @@ export const FinancialReportsTab: React.FC<FinancialReportsTabProps> = ({ data }
                 <tr>
                   <th>Category / Account</th>
                   <th>Category</th>
-                  <th>Amount (USD)</th>
+                  <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +296,7 @@ export const FinancialReportsTab: React.FC<FinancialReportsTabProps> = ({ data }
                 <tr>
                   <th>Cash Activity</th>
                   <th>Activity Type</th>
-                  <th>Net Flow (USD)</th>
+                  <th>Net Flow</th>
                 </tr>
               </thead>
               <tbody>
@@ -349,7 +350,7 @@ export const FinancialReportsTab: React.FC<FinancialReportsTabProps> = ({ data }
       {subTab === 'branch' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Chart */}
-          <div className="rp-card">
+          <ReportChartCard>
             <div className="rp-card-header">
               <h3 className="rp-card-title">
                 <Building size={18} color={CHART_COLORS.primary} />
@@ -374,7 +375,7 @@ export const FinancialReportsTab: React.FC<FinancialReportsTabProps> = ({ data }
                 </ResponsiveContainer>
               </div>
             </div>
-          </div>
+          </ReportChartCard>
 
           {/* Table */}
           <div className="rp-card">
