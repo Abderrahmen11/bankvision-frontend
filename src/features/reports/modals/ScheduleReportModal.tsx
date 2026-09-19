@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { X, Calendar, Mail, CheckCircle2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { X, Calendar, Mail, AlertTriangle } from 'lucide-react'
 
 interface ScheduleReportModalProps {
   isOpen: boolean
@@ -13,22 +12,11 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({ isOpen
   const [format, setFormat] = useState('pdf')
   const [recipients, setRecipients] = useState('executive-team@bankvision.internal')
   const [deliveryTime, setDeliveryTime] = useState('08:00')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-
-    setTimeout(() => {
-      setIsSubmitting(false)
-      toast.success(
-        `Automated ${frequency} report scheduled successfully! First dispatch at ${deliveryTime}.`,
-        { icon: '📅', duration: 4000 }
-      )
-      onClose()
-    }, 600)
   }
 
   return (
@@ -111,6 +99,32 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({ isOpen
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          {/* Informational banner explaining backend status */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+              padding: '0.85rem 1rem',
+              borderRadius: '8px',
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              color: '#f59e0b',
+              fontSize: '0.82rem',
+              lineHeight: 1.45
+            }}
+          >
+            <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong style={{ display: 'block', marginBottom: '2px' }}>
+                Automated Scheduling Not Configured
+              </strong>
+              <span>
+                Recurring automated report delivery requires an enterprise background queue worker (such as Redis or Horizon) which is not configured on this server. Please use the immediate <strong>CSV</strong>, <strong>Excel</strong>, or <strong>PDF</strong> export buttons in the dashboard toolbar.
+              </span>
+            </div>
+          </div>
+
           {/* Report Type */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.4rem' }}>
@@ -244,24 +258,25 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({ isOpen
               Cancel
             </button>
             <button
-              type="submit"
-              disabled={isSubmitting}
+              type="button"
+              disabled
               style={{
                 padding: '0.55rem 1.25rem',
                 borderRadius: '8px',
-                border: 'none',
-                background: '#6366f1',
-                color: '#fff',
+                border: '1px solid #334155',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#64748b',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                cursor: 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem'
               }}
+              title="Automated scheduling worker is not configured on this server"
             >
-              <CheckCircle2 size={16} />
-              {isSubmitting ? 'Scheduling...' : 'Save Schedule'}
+              <AlertTriangle size={15} />
+              Scheduling Not Configured
             </button>
           </div>
         </form>
