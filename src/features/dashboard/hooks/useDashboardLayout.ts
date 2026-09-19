@@ -1,18 +1,30 @@
+import { showToast } from '@/shared/hooks'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { UserRole } from '@/types/user'
-import type { DashboardWidgetConfig, WidgetType, WidgetSettings } from '@/types/dashboard'
-import { dashboardApi } from '@/api/dashboard'
+import type { UserRole } from '@/shared/types/user'
+import type { DashboardWidgetConfig, WidgetType, WidgetSettings } from '../types'
+import { dashboardApi } from '../api/dashboard'
 import { getDefaultRoleLayout, getWidgetDefinition } from '../config/widgetRegistry'
-import { showToast } from '@/hooks/useToast'
 
 const LOCAL_STORAGE_PREFIX = 'bankvision_dashboard_layout_'
+
+/**
+ * Drop widgets the current role may not use (e.g. system_health is visible to
+ * admin/auditor only — its data endpoint is admin-only). Unknown types that
+ * are not in the registry are dropped as well, since they cannot render.
+ */
+function filterWidgetsForRole(widgets: DashboardWidgetConfig[], role: UserRole): DashboardWidgetConfig[] {
+  return widgets.filter((w) => {
+    const def = getWidgetDefinition(w.type)
+    return def !== null && def.allowedRoles.includes(role)
+  })
+}
 
 export function useDashboardLayout(role: UserRole) {
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(() => {
     try {
       const cached = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${role}`)
       if (cached) {
-        return JSON.parse(cached)
+        return filterWidgetsForRole(JSON.parse(cached), role)
       }
     } catch {
       // fallback
@@ -31,7 +43,7 @@ export function useDashboardLayout(role: UserRole) {
     try {
       const backendLayout = await dashboardApi.getLayout()
       if (backendLayout?.layout_data?.widgets && backendLayout.layout_data.widgets.length > 0) {
-        setWidgets(backendLayout.layout_data.widgets)
+        setWidgets(filterWidgetsForRole(backendLayout.layout_data.widgets, role))
         setIsDefault(backendLayout.is_default)
         try {
           localStorage.setItem(
@@ -52,7 +64,7 @@ export function useDashboardLayout(role: UserRole) {
       try {
         const cached = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${role}`)
         if (cached) {
-          setWidgets(JSON.parse(cached))
+          setWidgets(filterWidgetsForRole(JSON.parse(cached), role))
         } else {
           setWidgets(getDefaultRoleLayout(role))
         }

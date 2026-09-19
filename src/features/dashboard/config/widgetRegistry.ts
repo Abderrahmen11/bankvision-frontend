@@ -86,7 +86,8 @@ const WIDGET_CATALOGUE: Record<WidgetType, WidgetDefinition> = {
     icon: 'Activity',
     defaultTitle: 'Infrastructure & System Health',
     defaultPosition: { w: 6, h: 6, minW: 4, minH: 4 },
-    allowedRoles: ['admin', 'auditor'],
+    // GET /settings/system/health is role:admin on the backend
+    allowedRoles: ['admin'],
     defaultSettings: { refreshInterval: 15 },
   },
 
@@ -374,14 +375,6 @@ const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetConfig[]> = {
       visible: true,
       position: { x: 0, y: 10, w: 8, h: 6, minW: 6, minH: 5 },
       settings: { refreshInterval: 60, limit: 12 },
-    },
-    {
-      id: 'widget-system-health',
-      type: 'system_health',
-      title: 'System Node & Security Health',
-      visible: true,
-      position: { x: 8, y: 10, w: 4, h: 6, minW: 4, minH: 4 },
-      settings: { refreshInterval: 30 },
     },
   ],
 }
