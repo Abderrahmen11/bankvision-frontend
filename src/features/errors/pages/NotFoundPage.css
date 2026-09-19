@@ -1,0 +1,194 @@
+/* 404 Not Found Page Root */
+.not-found-root {
+  min-height: 100vh;
+  background-color: var(--bg-app);
+  background-image: radial-gradient(900px 480px at 50% -10%, rgba(99, 102, 241, 0.08), transparent 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  font-family: var(--font-sans);
+}
+
+.not-found-card {
+  max-width: 560px;
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 2.5rem 2.5rem 2.25rem;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ambient Top Glow */
+.not-found-top-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--primary-500), transparent);
+}
+
+.not-found-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: var(--primary-400);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.not-found-code {
+  font-family: var(--font-mono);
+  font-size: 3.25rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  background: linear-gradient(120deg, var(--primary-300), var(--primary-500) 55%, var(--purple-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin-bottom: 1.25rem;
+}
+
+.not-found-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary-400);
+  margin-bottom: 0.5rem;
+}
+
+.not-found-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.not-found-description {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+/* Attempted Route Chip */
+.not-found-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.625rem 1rem;
+  margin-bottom: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.not-found-path-value {
+  color: var(--primary-300);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Navigation CTAs */
+.not-found-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.not-found-actions-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.not-found-btn {
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.not-found-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.not-found-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--primary-600);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  font-family: var(--font-sans);
+}
+
+.not-found-btn-primary:hover {
+  background-color: var(--primary-700);
+}
+
+.not-found-btn-secondary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+}
+
+.not-found-btn-secondary:hover {
+  border-color: var(--border-subtle-hover);
+  background: var(--bg-card-hover);
+}
+
+@media (max-width: 480px) {
+  .not-found-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .not-found-actions-row {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found-card {
+    animation: none;
+  }
+}
