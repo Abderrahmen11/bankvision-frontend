@@ -300,12 +300,12 @@ export const LoanDetailPage: React.FC = () => {
 
               <div className="ln-info-row">
                 <span className="ln-info-label">Email</span>
-                <span className="ln-info-value">{loan.customer.email || '—'}</span>
+                <span className="ln-info-value">{loan.customer.email || '-'}</span>
               </div>
 
               <div className="ln-info-row">
                 <span className="ln-info-label">Phone</span>
-                <span className="ln-info-value">{loan.customer.phone || '—'}</span>
+                <span className="ln-info-value">{loan.customer.phone || '-'}</span>
               </div>
 
               <div className="ln-info-row">
