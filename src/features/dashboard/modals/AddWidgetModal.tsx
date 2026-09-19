@@ -15,8 +15,8 @@ import {
   Activity,
   ShieldCheck,
 } from 'lucide-react'
-import type { UserRole } from '@/types/user'
-import type { WidgetType, DashboardWidgetConfig } from '@/types/dashboard'
+import type { UserRole } from '@/shared/types/user'
+import type { WidgetType, DashboardWidgetConfig } from '../types'
 import { getAvailableWidgetsForRole } from '../config/widgetRegistry'
 
 interface AddWidgetModalProps {

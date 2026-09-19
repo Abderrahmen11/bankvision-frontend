@@ -1,7 +1,7 @@
-import type { UserRole } from '@/types/user'
-import type { WidgetType, WidgetDefinition, DashboardWidgetConfig } from '@/types/dashboard'
+import type { UserRole } from '@/shared/types/user'
+import type { WidgetType, WidgetDefinition, DashboardWidgetConfig } from '../types'
 
-export const WIDGET_CATALOGUE: Record<WidgetType, WidgetDefinition> = {
+const WIDGET_CATALOGUE: Record<WidgetType, WidgetDefinition> = {
   stats: {
     type: 'stats',
     label: 'Key Performance Indicators',
@@ -102,7 +102,7 @@ export const WIDGET_CATALOGUE: Record<WidgetType, WidgetDefinition> = {
   },
 }
 
-export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetConfig[]> = {
+const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetConfig[]> = {
   admin: [
     {
       id: 'widget-stats',

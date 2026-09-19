@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, Save, Sliders, Clock, BarChart2 } from 'lucide-react'
-import type { DashboardWidgetConfig, WidgetSettings } from '@/types/dashboard'
+import type { DashboardWidgetConfig, WidgetSettings } from '../types'
 
 interface WidgetSettingsModalProps {
   isOpen: boolean
