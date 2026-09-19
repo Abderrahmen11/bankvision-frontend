@@ -23,7 +23,7 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import {
   formatCurrency,
   formatCompactNumber,
@@ -31,6 +31,8 @@ import {
   CHART_COLORS,
   type ReportTab
 } from '../reportHelpers'
+import { ReportKpiCard } from './ReportKpiCard'
+import { ReportChartCard } from './ReportChartCard'
 
 interface OverviewTabProps {
   data: ReportsData
@@ -68,84 +70,47 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, onNavigateTab })
       {/* ── KPI Grid ── */}
       <div className="rp-kpi-grid">
         {/* Total Revenue */}
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.success } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <DollarSign size={20} />
-          </div>
-          <div className="rp-kpi-label">Total Revenue</div>
-          <div className="rp-kpi-value">{formatCurrency(overview.total_revenue, true)}</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-            <span className="rp-kpi-sub">Gross operating yield</span>
-            <span className="rp-kpi-delta positive">
-              <ArrowUpRight size={13} /> Active
-            </span>
-          </div>
-        </div>
+        <ReportKpiCard
+          icon={<DollarSign size={20} />}
+          label="Total Revenue"
+          value={formatCurrency(overview.total_revenue, true)}
+          accent={CHART_COLORS.success}
+          footer={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}><span className="rp-kpi-sub">Gross operating yield</span><span className="rp-kpi-delta positive"><ArrowUpRight size={13} /> Active</span></div>}
+        />
 
         {/* Total Expenses */}
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.danger } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <TrendingDown size={20} />
-          </div>
-          <div className="rp-kpi-label">Total Expenses</div>
-          <div className="rp-kpi-value">{formatCurrency(overview.total_expenses, true)}</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-            <span className="rp-kpi-sub">Ops & deposit costs</span>
-            <span className="rp-kpi-delta negative">
-              <ArrowDownRight size={13} /> Cost
-            </span>
-          </div>
-        </div>
+        <ReportKpiCard
+          icon={<TrendingDown size={20} />}
+          label="Total Expenses"
+          value={formatCurrency(overview.total_expenses, true)}
+          accent={CHART_COLORS.danger}
+          footer={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}><span className="rp-kpi-sub">Ops & deposit costs</span><span className="rp-kpi-delta negative"><ArrowDownRight size={13} /> Cost</span></div>}
+        />
 
         {/* Net Profit */}
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': isProfitable ? CHART_COLORS.primary : CHART_COLORS.danger } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <TrendingUp size={20} />
-          </div>
-          <div className="rp-kpi-label">Net Profit (EAT)</div>
-          <div className={`rp-kpi-value ${isProfitable ? 'rp-positive' : 'rp-negative'}`}>
-            {formatCurrency(overview.net_profit, true)}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-            <span className="rp-kpi-sub">Margin: {formatPercent(overview.profit_margin)}</span>
-            <span className={`rp-kpi-delta ${isProfitable ? 'positive' : 'negative'}`}>
-              {isProfitable ? 'Profitable' : 'Deficit'}
-            </span>
-          </div>
-        </div>
+        <ReportKpiCard
+          icon={<TrendingUp size={20} />}
+          label="Net Profit (EAT)"
+          value={formatCurrency(overview.net_profit, true)}
+          accent={isProfitable ? CHART_COLORS.primary : CHART_COLORS.danger}
+          valueClassName={isProfitable ? 'rp-positive' : 'rp-negative'}
+          footer={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}><span className="rp-kpi-sub">Margin: {formatPercent(overview.profit_margin)}</span><span className={`rp-kpi-delta ${isProfitable ? 'positive' : 'negative'}`}>{isProfitable ? 'Profitable' : 'Deficit'}</span></div>}
+        />
 
         {/* Transaction Volume */}
-        <div
-          className="rp-kpi-card"
-          style={{ '--rp-kpi-color': CHART_COLORS.info } as React.CSSProperties}
-        >
-          <div className="rp-kpi-icon">
-            <Activity size={20} />
-          </div>
-          <div className="rp-kpi-label">Transaction Volume</div>
-          <div className="rp-kpi-value">{formatCurrency(overview.transaction_volume, true)}</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-            <span className="rp-kpi-sub">{overview.transaction_count.toLocaleString()} processed</span>
-            <span className="rp-kpi-delta positive">
-              <ArrowUpRight size={13} /> Vol
-            </span>
-          </div>
-        </div>
+        <ReportKpiCard
+          icon={<Activity size={20} />}
+          label="Transaction Volume"
+          value={formatCurrency(overview.transaction_volume, true)}
+          accent={CHART_COLORS.info}
+          footer={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}><span className="rp-kpi-sub">{overview.transaction_count.toLocaleString()} processed</span><span className="rp-kpi-delta positive"><ArrowUpRight size={13} /> Vol</span></div>}
+        />
       </div>
 
       {/* ── Middle Charts Row ── */}
       <div className="rp-grid-2">
         {/* Transaction Trend Area Chart */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <Activity size={18} color={CHART_COLORS.info} />
@@ -197,10 +162,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, onNavigateTab })
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
 
         {/* Revenue vs Expenses Stack */}
-        <div className="rp-card">
+        <ReportChartCard>
           <div className="rp-card-header">
             <h3 className="rp-card-title">
               <PieChartIcon size={18} color={CHART_COLORS.primary} />
@@ -241,7 +206,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, onNavigateTab })
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </ReportChartCard>
       </div>
 
       {/* ── Executive Summary Quick Navigation Cards ── */}
