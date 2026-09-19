@@ -1,4 +1,4 @@
-import type { ReportsData } from '@/types/dashboard'
+import type { ReportsData } from '@/features/reports'
 import { formatCurrency } from './reportHelpers'
 
 // ─── CSV Export ────────────────────────────────────────────────────────────────
@@ -121,16 +121,6 @@ export function exportRiskToCsv(data: ReportsData): void {
   downloadFile(rows.join('\n'), 'bankvision-risk-compliance-report.csv', 'text/csv;charset=utf-8;')
 }
 
-export function exportBranchPerformanceToCsv(data: ReportsData): void {
-  const rows = [
-    csvRow(['Branch', 'City', 'Status', 'Manager', 'Customers', 'Employees', 'Deposits', 'Loans', 'Tx Volume', 'Tx Count']),
-    ...data.branch_performance.map(b =>
-      csvRow([b.branch_name, b.city, b.status, b.manager ?? '', b.customer_count, b.employee_count,
-        formatCurrency(b.total_deposits), formatCurrency(b.total_loans), formatCurrency(b.tx_volume), b.tx_count])
-    ),
-  ]
-  downloadFile(rows.join('\n'), 'bankvision-branch-performance.csv', 'text/csv;charset=utf-8;')
-}
 
 export function exportFullReportToCsv(data: ReportsData): void {
   const sections: string[] = []

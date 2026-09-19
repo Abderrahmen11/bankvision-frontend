@@ -1,25 +1,16 @@
-import type { UserRole } from '@/types/user'
+import { formatMoney } from '@/shared/utils'
+import type { UserRole } from '@/shared/types/user'
 
 // ─── Currency & Number Formatters ───────────────────────────────────────────
 
 export function formatCurrency(value: number, compact = false): string {
   if (compact) {
-    if (Math.abs(value) >= 1_000_000_000) {
-      return '$' + (value / 1_000_000_000).toFixed(2) + 'B'
-    }
-    if (Math.abs(value) >= 1_000_000) {
-      return '$' + (value / 1_000_000).toFixed(2) + 'M'
-    }
-    if (Math.abs(value) >= 1_000) {
-      return '$' + (value / 1_000).toFixed(1) + 'K'
-    }
+    const abs = Math.abs(value)
+    if (abs >= 1_000_000_000) return formatMoney(value / 1_000_000_000) + 'B'
+    if (abs >= 1_000_000) return formatMoney(value / 1_000_000) + 'M'
+    if (abs >= 1_000) return formatMoney(value / 1_000) + 'K'
   }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)
+  return formatMoney(value)
 }
 
 export function formatCompactNumber(value: number): string {
@@ -67,7 +58,7 @@ export interface TabConfig {
   description: string
 }
 
-export const REPORT_TABS: TabConfig[] = [
+const REPORT_TABS: TabConfig[] = [
   {
     id: 'overview',
     label: 'Overview',
@@ -145,11 +136,3 @@ export const RISK_COLORS: Record<string, string> = {
   low:    CHART_COLORS.success,
 }
 
-export const STATUS_COLORS: Record<string, string> = {
-  active:      CHART_COLORS.success,
-  pending:     CHART_COLORS.warning,
-  rejected:    CHART_COLORS.danger,
-  delinquent:  '#f97316',
-  defaulted:   CHART_COLORS.danger,
-  approved:    CHART_COLORS.success,
-}
