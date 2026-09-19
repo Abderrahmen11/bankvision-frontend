@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { showToast, useAuth } from '@/shared/hooks'
+import React, { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -15,11 +18,9 @@ import {
   DollarSign,
   AlertTriangle,
 } from 'lucide-react'
-import { loansApi } from '@/api/loans'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Loan } from '@/types/loan'
-import type { PaginationMeta } from '@/types/api'
+import { loansApi } from '@/features/loans/api/loans'
+import type { Loan } from '@/features/loans/types'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   LOAN_TYPE_CONFIG,
   LOAN_STATUS_CONFIG,
@@ -51,9 +52,7 @@ export const LoanListPage: React.FC = () => {
   const isCompliance = isComplianceRole(role)
 
   // Data
-  const [loans, setLoans] = useState<Loan[]>([])
-  const [meta, setMeta] = useState<PaginationMeta | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
 
   // Filters
@@ -70,11 +69,11 @@ export const LoanListPage: React.FC = () => {
   const [showApplyModal, setShowApplyModal] = useState(false)
   const [updateTarget, setUpdateTarget] = useState<Loan | null>(null)
 
-  // Fetch loans
-  const fetchLoans = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await loansApi.list({
+  // List query - filters/sort/page are part of the key (cached 60s)
+  const listQuery = useQuery({
+    queryKey: ['loans', 'list', { search: search.trim() || undefined, typeFilter, statusFilter, sortBy, sortDir, page }],
+    queryFn: () =>
+      loansApi.list({
         search: search.trim() || undefined,
         loan_type: typeFilter || undefined,
         status: statusFilter || undefined,
@@ -82,20 +81,22 @@ export const LoanListPage: React.FC = () => {
         sort_direction: sortDir,
         page,
         per_page: 15,
-      })
-      setLoans(res.data || [])
-      setMeta(res.meta as PaginationMeta)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch loans.'
-      showToast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, typeFilter, statusFilter, sortBy, sortDir, page])
+      }),
+  })
+
+  const loans = listQuery.data?.data ?? []
+  const meta = (listQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = listQuery.isFetching
+  const listError = listQuery.error as Error | null
 
   useEffect(() => {
-    fetchLoans()
-  }, [fetchLoans])
+    if (listError) showToast.error(listError.message || 'Failed to fetch loans.')
+  }, [listError])
+
+  const refreshList = () => {
+    queryClient.invalidateQueries({ queryKey: ['loans'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  }
 
   const handleResetFilters = () => {
     setSearch('')
@@ -105,23 +106,30 @@ export const LoanListPage: React.FC = () => {
   }
 
   // Quick Action: Approve
-  const handleApprove = async (loan: Loan, e: React.MouseEvent) => {
+  const handleApprove = (loan: Loan, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!window.confirm(`Approve loan application ${loan.loan_number} for ${loan.customer?.full_name}?`)) {
-      return
-    }
-    setActionLoadingId(loan.id)
-    try {
-      await loansApi.approve(loan.id)
-      showToast.success(`Loan ${loan.loan_number} approved and activated!`)
-      fetchLoans()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to approve loan.'
-      showToast.error(msg)
-    } finally {
-      setActionLoadingId(null)
-    }
+    setConfirm({
+      title: 'Approve loan',
+      message: `Approve loan application ${loan.loan_number} for ${loan.customer?.full_name ?? 'the customer'}? Funds will be disbursed on approval.`,
+      confirmLabel: 'Approve',
+      danger: false,
+      run: async () => {
+        setActionLoadingId(loan.id)
+        try {
+          await loansApi.approve(loan.id)
+          showToast.success(`Loan ${loan.loan_number} approved and activated!`)
+          refreshList()
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to approve loan.'
+          showToast.error(msg)
+        } finally {
+          setActionLoadingId(null)
+        }
+      },
+    })
   }
+
+  const [confirm, setConfirm] = useState<{ title: string; message: string; confirmLabel: string; danger: boolean; run: () => Promise<void> } | null>(null)
 
   // Export CSV
   const handleExportCSV = () => {
@@ -183,7 +191,7 @@ export const LoanListPage: React.FC = () => {
           </button>
           <button
             className="ln-btn ln-btn-ghost"
-            onClick={fetchLoans}
+            onClick={() => listQuery.refetch()}
             title="Refresh loans"
             disabled={loading}
           >
@@ -608,7 +616,7 @@ export const LoanListPage: React.FC = () => {
           onClose={() => setShowApplyModal(false)}
           onSuccess={() => {
             setShowApplyModal(false)
-            fetchLoans()
+            refreshList()
           }}
         />
       )}
@@ -620,10 +628,19 @@ export const LoanListPage: React.FC = () => {
           onClose={() => setUpdateTarget(null)}
           onSuccess={() => {
             setUpdateTarget(null)
-            fetchLoans()
+            refreshList()
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onConfirm={() => { confirm?.run() }}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   )
 }
