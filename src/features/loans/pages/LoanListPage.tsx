@@ -32,9 +32,11 @@ import {
   canUpdateLoan,
   isComplianceRole,
   exportToCSV,
-} from './loanHelpers'
-import { ApplyLoanModal } from './modals/ApplyLoanModal'
-import { UpdateLoanModal } from './modals/UpdateLoanModal'
+} from '../loanHelpers'
+import { MobileSortSelect } from '@/shared/components/MobileSortSelect'
+
+import { ApplyLoanModal } from '../modals/ApplyLoanModal'
+import { UpdateLoanModal } from '../modals/UpdateLoanModal'
 import './LoanManagement.css'
 
 export const LoanListPage: React.FC = () => {
@@ -314,7 +316,22 @@ export const LoanListPage: React.FC = () => {
       </div>
 
       {/* Loans Table Card */}
-      <div className="ln-table-card">
+            {/* Mobile sort controls (hidden on desktop) */}
+      <MobileSortSelect
+        value={sortBy}
+        dir={sortDir}
+        options={[
+          { value: 'created_at', label: 'Sort by Date' },
+          { value: 'principal_amount', label: 'Sort by Principal' },
+          { value: 'outstanding_balance', label: 'Sort by Outstanding' },
+          { value: 'interest_rate', label: 'Sort by Rate' },
+          { value: 'next_payment_date', label: 'Sort by Next Payment' },
+        ]}
+        onField={(v) => { setSortBy(v as typeof sortBy); setPage(1) }}
+        onDir={setSortDir}
+      />
+
+<div className="ln-table-card">
         <div className="ln-table-wrapper">
           <table className="ln-table">
             <thead>
