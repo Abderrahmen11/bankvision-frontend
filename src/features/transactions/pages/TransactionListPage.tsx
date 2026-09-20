@@ -415,6 +415,18 @@ export const TransactionListPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Mobile sort controls (hidden on desktop) */}
+      <MobileSortSelect
+        value={sortBy}
+        dir={sortDir}
+        options={[
+          { value: 'transaction_date', label: 'Sort by Date' },
+          { value: 'amount', label: 'Sort by Amount' },
+        ]}
+        onField={(v) => { setSortBy(v as typeof sortBy); setPage(1) }}
+        onDir={setSortDir}
+      />
+
       {/* Transactions Table Card */}
       <div className="tx-table-card">
         <div className="tx-table-wrapper">
@@ -468,6 +480,8 @@ export const TransactionListPage: React.FC = () => {
                   const highVal = isHighValue(Number(tx.amount))
                   const isPending = tx.status === 'pending'
                   const isFlagged = tx.status === 'flagged'
+                  const isFailed = tx.status === 'failed'
+                  const canFlag = !isFlagged && !isFailed
 
                   return (
                     <tr
@@ -605,7 +619,7 @@ export const TransactionListPage: React.FC = () => {
                           )}
 
                           {/* Flag (Admin, Manager, Compliance when completed or pending) */}
-                          {allowFlag && !isFlagged && (
+                          {allowFlag && canFlag && (
                             <button
                               className="tx-icon-btn flag"
                               title="Flag as Suspicious"
@@ -677,10 +691,19 @@ export const TransactionListPage: React.FC = () => {
           onClose={() => setShowRecordModal(false)}
           onSuccess={() => {
             setShowRecordModal(false)
-            fetchTransactions()
+            refreshList()
           }}
         />
       )}
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onConfirm={() => { confirm?.run() }}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   )
 }
