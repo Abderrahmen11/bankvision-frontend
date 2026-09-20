@@ -1,4 +1,5 @@
-import type { UserRole } from '@/types/user'
+import { formatDateLocale } from '@/shared/utils'
+import type { UserRole } from '@/shared/types/user'
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin:      'System Administrator',
@@ -42,10 +43,10 @@ export function getInitials(name: string): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
@@ -54,7 +55,7 @@ export function formatDateTime(dateStr: string | null | undefined): string {
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr, { dateStyle: 'medium' })
   } catch {
     return dateStr
   }
