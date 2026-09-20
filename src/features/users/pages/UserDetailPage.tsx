@@ -1,3 +1,4 @@
+import { showToast, useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -6,20 +7,18 @@ import {
   Clock, Activity, RefreshCw, LogIn, CheckCircle,
   Save
 } from 'lucide-react'
-import { usersApi } from '@/api/users'
-import { branchesApi } from '@/api/branches'
-import { auditLogsApi, type AuditLog } from '@/api/auditLogs'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { User, Branch } from '@/types/user'
+import { usersApi } from '@/features/users/api/users'
+import { branchesApi } from '@/features/branches/api/branches'
+import { auditLogsApi, type AuditLog } from '@/features/audit/api/auditLogs'
+import type { User, Branch } from '@/shared/types/user'
 import {
   ROLE_LABELS, ROLE_COLORS, getAvatarColor, getInitials,
   formatDate, formatDateTime
-} from './userHelpers'
-import { EditUserModal } from './modals/EditUserModal'
-import { DeleteUserModal } from './modals/DeleteUserModal'
-import { ResetPasswordModal } from './modals/ResetPasswordModal'
-import { SuspendUserModal } from './modals/SuspendUserModal'
+} from '../userHelpers'
+import { EditUserModal } from '../modals/EditUserModal'
+import { DeleteUserModal } from '../modals/DeleteUserModal'
+import { ResetPasswordModal } from '../modals/ResetPasswordModal'
+import { SuspendUserModal } from '../modals/SuspendUserModal'
 import './UserManagement.css'
 
 export const UserDetailPage: React.FC = () => {
@@ -74,7 +73,7 @@ export const UserDetailPage: React.FC = () => {
         email: data.email || '',
         phone: data.phone || '',
         role: data.role || 'csr',
-        branch_id: data.branch_id ? String(data.branch_id) : '',
+        branch_id: data.branch?.id ? String(data.branch.id) : '',
         status: data.status || 'active',
       })
       setFormDirty(false)
@@ -87,7 +86,8 @@ export const UserDetailPage: React.FC = () => {
   }, [id, navigate])
 
   useEffect(() => {
-    fetchUser()
+    const timer = setTimeout(() => { void fetchUser() }, 0)
+    return () => clearTimeout(timer)
   }, [fetchUser])
 
   // Fetch activity logs
@@ -110,7 +110,8 @@ export const UserDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'activity' || activeTab === 'logins') {
-      fetchLogs()
+      const timer = setTimeout(() => { void fetchLogs() }, 0)
+      return () => clearTimeout(timer)
     }
   }, [activeTab, fetchLogs])
 
@@ -236,7 +237,7 @@ export const UserDetailPage: React.FC = () => {
             </div>
             <div className="um-profile-meta-row">
               <span className="label">Phone</span>
-              <span className="value">{user.phone || '—'}</span>
+              <span className="value">{user.phone || '-'}</span>
             </div>
             <div className="um-profile-meta-row">
               <span className="label">Branch</span>
@@ -428,7 +429,7 @@ export const UserDetailPage: React.FC = () => {
                       disabled={!isAdmin}
                       style={{ appearance: 'auto' }}
                     >
-                      <option value="">— Global / No Specific Branch —</option>
+                      <option value="">- Global / No Specific Branch -</option>
                       {branches.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.branch_name} ({b.branch_code})
@@ -468,7 +469,7 @@ export const UserDetailPage: React.FC = () => {
                           email: user.email || '',
                           phone: user.phone || '',
                           role: user.role || 'csr',
-                          branch_id: user.branch_id ? String(user.branch_id) : '',
+                          branch_id: user.branch?.id ? String(user.branch.id) : '',
                           status: user.status || 'active',
                         })
                         setFormDirty(false)
