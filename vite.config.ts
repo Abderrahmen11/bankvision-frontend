@@ -11,6 +11,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
+      '@features': fileURLToPath(new URL('./src/features', import.meta.url)),
+      '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
+      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+      '@store': fileURLToPath(new URL('./src/store', import.meta.url)),
+      '@styles': fileURLToPath(new URL('./src/styles', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
