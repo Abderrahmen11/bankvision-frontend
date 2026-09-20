@@ -1,4 +1,4 @@
-import type { User } from '@/types/user'
+import type { User } from '@/shared/types/user'
 
 const TOKEN_KEY = 'bankvision_auth_token'
 const USER_KEY = 'bankvision_auth_user'
