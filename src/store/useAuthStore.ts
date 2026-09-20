@@ -1,11 +1,13 @@
+import { storage } from '@/shared/utils'
 import { create } from 'zustand'
-import { authApi } from '@/api/auth'
-import { storage } from '@/utils/storage'
-import type { AuthState, LoginCredentials } from '@/types/auth'
-import type { User, UserRole } from '@/types/user'
+import { authApi } from '@/features/auth/api/auth'
+import { TwoFactorRequiredError, type AuthState, type LoginCredentials } from '@/features/auth/api/auth'
+import type { User, UserRole } from '@/shared/types/user'
 
 interface AuthActions {
   login: (credentials: LoginCredentials) => Promise<User>
+  verifyTwoFactor: (email: string, code: string) => Promise<User>
+  resendTwoFactor: (email: string) => Promise<string | null>
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
   setUser: (user: User) => void
@@ -17,19 +19,6 @@ interface AuthActions {
 export type AuthStore = AuthState & AuthActions
 
 export const useAuthStore = create<AuthStore>((set, get) => {
-  // Listen for global unauthorized events emitted by apiClient
-  if (typeof window !== 'undefined') {
-    window.addEventListener('bankvision:unauthorized', () => {
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: 'Your session has expired. Please sign in again.',
-      })
-    })
-  }
-
   const initialToken = storage.getToken()
   const initialUser = storage.getUser()
 
@@ -48,7 +37,18 @@ export const useAuthStore = create<AuthStore>((set, get) => {
       set({ isLoading: true, error: null })
       try {
         const response = await authApi.login(credentials)
-        const { token, user } = response
+
+        // 2FA enabled on this account: an email code challenge is pending
+        if (response.requires_2fa || !response.token || !response.user) {
+          set({ isLoading: false, error: null })
+          throw new TwoFactorRequiredError(
+            response.message || 'A verification code has been sent to your email.',
+            credentials.email,
+            response.dev_hint
+          )
+        }
+
+        const { token, user } = response as { token: string; user: User }
 
         // Persist token and user
         storage.setToken(token)
@@ -76,6 +76,47 @@ export const useAuthStore = create<AuthStore>((set, get) => {
         storage.clearAuth()
         throw err
       }
+    },
+
+    /**
+     * Complete a two-factor login: verify the emailed code and finish sign-in.
+     */
+    verifyTwoFactor: async (email: string, code: string): Promise<User> => {
+      set({ isLoading: true, error: null })
+      try {
+        const response = await authApi.verifyTwoFactorLogin(email, code)
+        if (!response.token || !response.user) {
+          throw new Error(response.message || 'Invalid or expired verification code.')
+        }
+
+        const { token, user } = response
+        storage.setToken(token)
+        storage.setUser(user)
+
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          isInitialized: true,
+          error: null,
+        })
+
+        return user
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Verification failed.'
+        set({ isLoading: false, error: message })
+        throw err
+      }
+    },
+
+    /**
+     * Re-issue the 2FA code for a pending login challenge. Returns the dev
+     * hint when the backend runs with the log mailer (dev only).
+     */
+    resendTwoFactor: async (email: string): Promise<string | null> => {
+      const response = await authApi.resendTwoFactorLogin(email)
+      return response.dev_hint ?? null
     },
 
     /**
