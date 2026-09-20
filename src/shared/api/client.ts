@@ -1,7 +1,7 @@
+import { storage } from '@/shared/utils'
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import { env } from '@/utils/env'
-import { storage } from '@/utils/storage'
-import type { ApiErrorResponse } from '@/types/api'
+import { env } from '@/shared/config/env'
+import type { ApiErrorResponse, ApiEnhancedError } from '@/shared/types/api'
 
 /**
  * BankVision Centralized Axios API Client
@@ -55,16 +55,35 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const enhancedError = new Error(message) as Error & {
-      status?: number
-      errors?: Record<string, string[]>
-      raw?: ApiErrorResponse
+    // Normalize 403 messages so permission problems are always recognizable
+    // (Laravel usually prefixes "Access forbidden." but not every path does)
+    if (status === 403) {
+      if (!/^access (forbidden|denied)/i.test(message)) {
+        message = `Access denied: ${message}`
+      }
+      window.dispatchEvent(
+        new CustomEvent('bankvision:forbidden', {
+          detail: { message, status: 403, url: error.config?.url },
+        })
+      )
     }
 
+    const enhancedError = new Error(message) as ApiEnhancedError
+
     enhancedError.status = status
+    enhancedError.forbidden = status === 403
     enhancedError.errors = data?.errors
     enhancedError.raw = data
 
     return Promise.reject(enhancedError)
   }
 )
+
+/** True when an API call was rejected by the backend's role/branch rules. */
+export function isForbiddenError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ((error as ApiEnhancedError).forbidden === true || (error as ApiEnhancedError).status === 403)
+  )
+}

@@ -10,7 +10,14 @@ export interface ApiErrorResponse {
   errors?: Record<string, string[]>
 }
 
-export interface PaginationLinks {
+export interface ApiEnhancedError extends Error {
+  status?: number
+  forbidden?: boolean
+  errors?: Record<string, string[]>
+  raw?: ApiErrorResponse
+}
+
+interface PaginationLinks {
   first: string | null
   last: string | null
   prev: string | null
