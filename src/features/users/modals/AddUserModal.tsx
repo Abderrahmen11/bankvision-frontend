@@ -1,10 +1,10 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, UserPlus, Eye, EyeOff } from 'lucide-react'
-import { usersApi } from '@/api/users'
-import { showToast } from '@/hooks/useToast'
-import type { Branch } from '@/types/user'
-import { ROLE_LABELS } from '../userHelpers'
-import '../UserManagement.css'
+import { usersApi } from '@/features/users/api/users'
+import type { Branch } from '@/shared/types/user'
+import { UserFormFields } from '../components/UserFormFields'
+import '../pages/UserManagement.css'
 
 interface Props {
   branches: Branch[]
@@ -81,69 +81,14 @@ export const AddUserModal: React.FC<Props> = ({ branches, onClose, onSuccess }) 
 
         <form onSubmit={handleSubmit}>
           <div className="um-modal-body">
-            <div className="um-form-grid">
-              {/* Full Name */}
-              <div className="um-form-group">
-                <label className="um-label">Full Name *</label>
-                <input className={`um-input ${errors.name ? 'error' : ''}`}
-                  value={form.name} onChange={(e) => set('name', e.target.value)}
-                  placeholder="John Doe" autoFocus />
-                {errors.name && <span className="um-field-error">{errors.name}</span>}
-              </div>
-
-              {/* Email */}
-              <div className="um-form-group">
-                <label className="um-label">Email Address *</label>
-                <input className={`um-input ${errors.email ? 'error' : ''}`}
-                  type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
-                  placeholder="john@bankvision.com" />
-                {errors.email && <span className="um-field-error">{errors.email}</span>}
-              </div>
-
-              {/* Phone */}
-              <div className="um-form-group">
-                <label className="um-label">Phone Number</label>
-                <input className="um-input" type="tel" value={form.phone}
-                  onChange={(e) => set('phone', e.target.value)} placeholder="+1-555-0100" />
-              </div>
-
-              {/* Role */}
-              <div className="um-form-group">
-                <label className="um-label">Role *</label>
-                <select className={`um-input um-select ${errors.role ? 'error' : ''}`}
-                  value={form.role} onChange={(e) => set('role', e.target.value)}
-                  style={{ appearance: 'auto' }}>
-                  {(['admin','manager','compliance','analyst','csr','auditor'] as const).map((r) => (
-                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                  ))}
-                </select>
-                {errors.role && <span className="um-field-error">{errors.role}</span>}
-              </div>
-
-              {/* Branch */}
-              <div className="um-form-group">
-                <label className="um-label">Branch Assignment</label>
-                <select className="um-input" value={form.branch_id}
-                  onChange={(e) => set('branch_id', e.target.value)} style={{ appearance: 'auto' }}>
-                  <option value="">— No Branch —</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Status */}
-              <div className="um-form-group">
-                <label className="um-label">Initial Status</label>
-                <select className="um-input" value={form.status}
-                  onChange={(e) => set('status', e.target.value)} style={{ appearance: 'auto' }}>
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="suspended">Suspended</option>
-                </select>
-              </div>
-
-              {/* Password */}
+            <UserFormFields
+              mode="add"
+              form={form}
+              errors={errors}
+              branches={branches}
+              onChange={set}
+              autoFocus
+            >
               <div className="um-form-group">
                 <label className="um-label">Password *</label>
                 <div style={{ position: 'relative' }}>
@@ -161,7 +106,6 @@ export const AddUserModal: React.FC<Props> = ({ branches, onClose, onSuccess }) 
                 {errors.password && <span className="um-field-error">{errors.password}</span>}
               </div>
 
-              {/* Confirm Password */}
               <div className="um-form-group">
                 <label className="um-label">Confirm Password *</label>
                 <input className={`um-input ${errors.password_confirmation ? 'error' : ''}`}
@@ -172,7 +116,7 @@ export const AddUserModal: React.FC<Props> = ({ branches, onClose, onSuccess }) 
                   <span className="um-field-error">{errors.password_confirmation}</span>
                 )}
               </div>
-            </div>
+            </UserFormFields>
           </div>
 
           <div className="um-modal-footer">

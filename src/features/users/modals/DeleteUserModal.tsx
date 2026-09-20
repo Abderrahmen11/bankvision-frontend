@@ -1,9 +1,9 @@
+import { showToast } from '@/shared/hooks'
 import React, { useState } from 'react'
 import { X, AlertTriangle, Trash2 } from 'lucide-react'
-import { usersApi } from '@/api/users'
-import { showToast } from '@/hooks/useToast'
-import type { User } from '@/types/user'
-import '../UserManagement.css'
+import { usersApi } from '@/features/users/api/users'
+import type { User } from '@/shared/types/user'
+import '../pages/UserManagement.css'
 
 interface Props {
   user: User
