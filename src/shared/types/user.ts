@@ -10,7 +10,8 @@ export type UserRole =
   | 'auditor'
   | 'analyst'
 
-export type UserStatus = 'active' | 'inactive' | 'suspended'
+/** Matches App\Enums\UserStatus on the backend: pending | active | suspended */
+type UserStatus = 'pending' | 'active' | 'suspended'
 
 export interface Branch {
   id: number
@@ -21,6 +22,7 @@ export interface Branch {
   phone?: string | null
   status: 'active' | 'inactive' | 'under_renovation'
   total_employees?: number
+  users_count?: number
   manager_id?: number | null
   manager?: User | null
   created_at?: string
@@ -34,7 +36,10 @@ export interface User {
   role: UserRole
   status: UserStatus
   phone?: string | null
-  branch_id?: number | null
+  avatar?: string | null
+  avatar_url?: string | null
+  // UserResource does not serialize branch_id — the assigned branch (when
+  // eager-loaded) is exposed as `branch`. Read user.branch?.id instead.
   branch?: Branch | null
   last_login_at?: string | null
   created_at?: string
