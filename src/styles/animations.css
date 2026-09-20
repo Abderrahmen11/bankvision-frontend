@@ -1,0 +1,23 @@
+/* ── Keyframes & animation utilities ───────────────────────────────── */
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  /* No forwards-fill: a lingering transform would make this container the
+     containing block for position:fixed modals (breaks bottom sheets). */
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
