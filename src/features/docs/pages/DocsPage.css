@@ -125,7 +125,7 @@
   outline: none;
   border-color: var(--border-focus);
   background: var(--bg-surface);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.15);
 }
 
 .docs-header-right {
@@ -163,13 +163,13 @@
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 12px rgba(169, 138, 79, 0.35);
   transition: all var(--transition-fast);
 }
 
 .docs-cta-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45);
+  box-shadow: 0 6px 16px rgba(169, 138, 79, 0.45);
 }
 
 /* 2. Main Content Grid */
@@ -230,7 +230,7 @@
 
 .toc-link.active {
   color: var(--primary-400);
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(201, 168, 106, 0.12);
   font-weight: 700;
 }
 
@@ -249,7 +249,7 @@
   font-size: 0.625rem;
   font-weight: 800;
   color: var(--emerald-500);
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(60, 184, 120, 0.15);
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   width: fit-content;
@@ -291,6 +291,7 @@
 }
 
 .docs-title {
+  font-family: var(--font-display);
   font-size: 2.25rem;
   font-weight: 800;
   color: var(--text-primary);
@@ -299,6 +300,7 @@
 }
 
 .docs-section-title {
+  font-family: var(--font-display);
   font-size: 1.625rem;
   font-weight: 800;
   color: var(--text-primary);
@@ -358,11 +360,11 @@
   justify-content: center;
 }
 
-.card-icon.primary { background: rgba(99, 102, 241, 0.15); color: var(--primary-400); }
-.card-icon.cyan { background: rgba(6, 182, 212, 0.15); color: var(--cyan-500); }
-.card-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--emerald-500); }
+.card-icon.primary { background: rgba(201, 168, 106, 0.15); color: var(--primary-400); }
+.card-icon.cyan { background: rgba(123, 150, 217, 0.15); color: var(--cyan-500); }
+.card-icon.green { background: rgba(60, 184, 120, 0.15); color: var(--emerald-500); }
 .card-icon.pink { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-.card-icon.amber { background: rgba(245, 158, 11, 0.15); color: var(--amber-500); }
+.card-icon.amber { background: rgba(223, 166, 64, 0.15); color: var(--amber-500); }
 
 .docs-info-card h4 {
   font-size: 1rem;
@@ -388,8 +390,8 @@
 }
 
 .docs-callout.note {
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(201, 168, 106, 0.08);
+  border: 1px solid rgba(201, 168, 106, 0.25);
   color: var(--text-primary);
 }
 
@@ -468,25 +470,25 @@
 }
 
 :root[data-theme='light'] .code-block-container {
-  background: #0f172a;
+  background: var(--slate-900);
 }
 
 .code-block-header {
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-row-hover);
+  border-bottom: 1px solid var(--bg-row-hover);
   padding: 0.6rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  color: #94a3b8;
+  color: var(--slate-400);
 }
 
 .code-pre {
   padding: 1.25rem;
   margin: 0;
-  color: #f8fafc;
+  color: var(--slate-50);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -542,12 +544,12 @@
   width: fit-content;
 }
 
-.rbac-header.admin { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
-.rbac-header.manager { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.rbac-header.admin { background: rgba(154, 123, 184, 0.15); color: var(--purple-500); }
+.rbac-header.manager { background: rgba(123, 150, 217, 0.15); color: var(--cyan-500); }
 .rbac-header.compliance { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-.rbac-header.csr { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.rbac-header.analyst { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.rbac-header.auditor { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+.rbac-header.csr { background: rgba(223, 166, 64, 0.15); color: var(--amber-500); }
+.rbac-header.analyst { background: rgba(60, 184, 120, 0.15); color: var(--emerald-500); }
+.rbac-header.auditor { background: rgba(123, 150, 217, 0.15); color: var(--cyan-500); }
 
 .rbac-card p {
   font-size: 0.8125rem;
@@ -688,4 +690,16 @@
   .docs-header-center {
     display: none;
   }
+}
+
+
+/* ── Night Ledger refinements (appended) ─────────────────────────── */
+.docs-table th {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border-subtle-hover);
+  box-shadow: 0 3px 0 -2px var(--border-subtle);
 }

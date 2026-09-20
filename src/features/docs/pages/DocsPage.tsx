@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react'
-import { DocsHeader } from './components/DocsHeader'
-import { DocsSidebar } from './components/DocsSidebar'
-import { DocsOverviewSection } from './components/DocsOverviewSection'
-import { DocsLedgerSection } from './components/DocsLedgerSection'
-import { DocsAccountsSection } from './components/DocsAccountsSection'
-import { DocsTransactionsSection } from './components/DocsTransactionsSection'
-import { DocsLoansSection } from './components/DocsLoansSection'
-import { DocsComplianceSection } from './components/DocsComplianceSection'
-import { DocsRbacSection } from './components/DocsRbacSection'
-import { DocsApiSection } from './components/DocsApiSection'
-import { DocsFaqSection } from './components/DocsFaqSection'
-import { DocsFooter } from './components/DocsFooter'
+import { useLocation } from 'react-router-dom'
+import { DocsHeader } from '../components/DocsHeader'
+import { DocsSidebar } from '../components/DocsSidebar'
+import { DocsOverviewSection } from '../components/DocsOverviewSection'
+import { DocsLedgerSection } from '../components/DocsLedgerSection'
+import { DocsAccountsSection } from '../components/DocsAccountsSection'
+import { DocsTransactionsSection } from '../components/DocsTransactionsSection'
+import { DocsLoansSection } from '../components/DocsLoansSection'
+import { DocsComplianceSection } from '../components/DocsComplianceSection'
+import { DocsRbacSection } from '../components/DocsRbacSection'
+import { DocsApiSection } from '../components/DocsApiSection'
+import { DocsFaqSection } from '../components/DocsFaqSection'
+import { DocsFooter } from '../components/DocsFooter'
 import './DocsPage.css'
 
 export const DocsPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('overview')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const location = useLocation()
+
+  // Scroll to the anchored section (global search links use /docs#section-id)
+  useEffect(() => {
+    if (!location.hash) return
+    const id = location.hash.slice(1)
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ block: 'start' })
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [location.hash])
 
   // Scroll spy to update active section in sidebar
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { useAuth, useTheme } from '@/shared/hooks'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -8,8 +9,6 @@ import {
   ArrowRight,
   ArrowLeft,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useTheme } from '@/hooks/useTheme'
 
 interface DocsHeaderProps {
   searchQuery: string
