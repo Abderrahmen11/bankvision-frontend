@@ -1,13 +1,8 @@
-import type { TransactionType, TransactionStatus, TransactionChannel } from '@/types/transaction'
-import type { UserRole } from '@/types/user'
+import { formatDateLocale, formatMoney } from '@/shared/utils'
+import type { TransactionType, TransactionStatus, TransactionChannel } from '@/features/transactions/types'
+import type { UserRole } from '@/shared/types/user'
 
-/* ── Transaction Type Config ── */
-export const TX_TYPE_LABELS: Record<TransactionType, string> = {
-  deposit:    'Deposit',
-  withdrawal: 'Withdrawal',
-  transfer:   'Transfer',
-  wire:       'Wire Transfer',
-}
+
 
 export const TX_TYPE_CONFIG: Record<
   TransactionType,
@@ -74,8 +69,7 @@ export const TX_STATUS_CONFIG: Record<
   },
 }
 
-/* ── Channel Labels ── */
-export const CHANNEL_LABELS: Record<string, string> = {
+const CHANNEL_LABELS: Record<string, string> = {
   branch: 'Branch',
   atm:    'ATM',
   online: 'Online Banking',
@@ -96,34 +90,20 @@ export function canRecordTransaction(role?: UserRole): boolean {
   return role === 'admin' || role === 'manager' || role === 'csr'
 }
 
-export function canViewAllBranches(role?: UserRole): boolean {
-  return role === 'admin' || role === 'analyst' || role === 'auditor'
-}
-
-/** Whether this role can approve — not compliance, not csr/analyst/auditor */
-export function isReadOnly(role?: UserRole): boolean {
-  return role === 'analyst' || role === 'auditor'
-}
 
 /* ── Amount Formatters ── */
 export function formatCurrency(
   amount: number | string | undefined | null,
-  currency = 'USD'
+  _currency?: string
 ): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0)
-  if (isNaN(num)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+  // Fixed display currency: TND
+  return formatMoney(amount)
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(dateStr))
+    return formatDateLocale(dateStr)
   } catch {
     return dateStr
   }
@@ -132,10 +112,10 @@ export function formatDate(dateStr: string | null | undefined): string {
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDateLocale(dateStr, {
       dateStyle: 'medium',
       timeStyle: 'short',
-    }).format(new Date(dateStr))
+    })
   } catch {
     return dateStr
   }
@@ -173,21 +153,18 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string) {
 /** Format large numbers compactly (e.g. 10000 → $10K) */
 export function formatAmountCompact(amount: number | undefined | null): string {
   const num = amount ?? 0
-  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`
-  if (num >= 1_000)     return `$${(num / 1_000).toFixed(1)}K`
-  return `$${num.toFixed(0)}`
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M DT`
+  if (num >= 1_000)     return `${(num / 1_000).toFixed(1)}K DT`
+  return `${num.toFixed(0)} DT`
 }
 
-/** High-value threshold used by compliance */
-export const HIGH_VALUE_THRESHOLD = 10_000
+const HIGH_VALUE_THRESHOLD = 10_000
 
-export function isHighValue(amount: number): boolean {
-  return amount >= HIGH_VALUE_THRESHOLD
+export function isHighValue(amount: number | string | undefined | null): boolean {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0)
+  return !Number.isNaN(num) && num >= HIGH_VALUE_THRESHOLD
 }
 
-export function getTypeIcon(type: TransactionType): string {
-  return TX_TYPE_CONFIG[type]?.icon ?? '•'
-}
 
 export function getChannelLabel(channel?: TransactionChannel | string | null): string {
   if (!channel) return '—'
