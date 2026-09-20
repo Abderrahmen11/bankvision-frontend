@@ -1,11 +1,10 @@
+import { showToast, useAuth } from '@/shared/hooks'
 import React, { useState, useEffect } from 'react'
 import { X, PlusCircle, Search, AlertCircle, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
-import { transactionsApi } from '@/api/transactions'
-import { accountsApi } from '@/api/accounts'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { RecordTransactionPayload, TransactionType, TransactionChannel } from '@/types/transaction'
-import type { BankAccount } from '@/types/account'
+import { transactionsApi } from '@/features/transactions/api/transactions'
+import { accountsApi } from '@/features/accounts/api/accounts'
+import type { RecordTransactionPayload, TransactionType, TransactionChannel } from '@/features/transactions/types'
+import type { BankAccount } from '@/features/accounts/types'
 import { formatCurrency } from '../transactionHelpers'
 
 interface Props {
@@ -28,7 +27,7 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
   // Form fields
   const [txType, setTxType] = useState<TransactionType>('deposit')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const CURRENCY = 'TND' // Fixed: Tunisian Dinar
   const [channel, setChannel] = useState<TransactionChannel>('branch')
   const [counterparty, setCounterparty] = useState('')
   const [description, setDescription] = useState('')
@@ -41,7 +40,6 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
         .get(defaultAccountId)
         .then((acc) => {
           setSelectedAccount(acc)
-          if (acc.currency) setCurrency(acc.currency)
         })
         .catch(() => {})
     }
@@ -49,27 +47,27 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
 
   // Debounced search for accounts
   useEffect(() => {
-    if (!accountSearch.trim()) {
-      setAccountResults([])
-      return
-    }
+    const term = accountSearch.trim()
     const timer = setTimeout(async () => {
+      if (!term) {
+        setAccountResults([])
+        return
+      }
       setSearchLoading(true)
       try {
-        const res = await accountsApi.list({ search: accountSearch.trim(), per_page: 8 })
+        const res = await accountsApi.list({ search: term, per_page: 8 })
         setAccountResults(res.data || [])
       } catch {
         setAccountResults([])
       } finally {
         setSearchLoading(false)
       }
-    }, 350)
+    }, term ? 350 : 0)
     return () => clearTimeout(timer)
   }, [accountSearch])
 
   const handleSelectAccount = (acc: BankAccount) => {
     setSelectedAccount(acc)
-    if (acc.currency) setCurrency(acc.currency)
     setAccountSearch('')
     setAccountResults([])
   }
@@ -97,7 +95,7 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
       account_id: selectedAccount.id,
       transaction_type: txType,
       amount: numAmount,
-      currency,
+      currency: CURRENCY,
       channel,
       status,
       counterparty: counterparty.trim() || undefined,
@@ -244,6 +242,7 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
                 <label className="tx-form-label">Amount *</label>
                 <input
                   type="number"
+                    inputMode="decimal"
                   step="0.01"
                   min="0.01"
                   className="tx-form-input"
@@ -257,20 +256,7 @@ export const RecordTransactionModal: React.FC<Props> = ({ onClose, onSuccess, de
 
             {/* Currency & Channel Row */}
             <div className="tx-form-row">
-              <div className="tx-form-group">
-                <label className="tx-form-label">Currency</label>
-                <select
-                  className="tx-form-select"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                >
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="CAD">CAD ($)</option>
-                  <option value="AUD">AUD ($)</option>
-                </select>
-              </div>
+              
 
               <div className="tx-form-group">
                 <label className="tx-form-label">Channel</label>
