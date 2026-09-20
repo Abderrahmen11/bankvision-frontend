@@ -1,0 +1,884 @@
+/* ==========================================================================
+   BankVision Mobile & Tablet Responsive Layer
+   - Desktop (>1024px) is untouched.
+   - Tablet (768–1024px): denser tables (contained horizontal scroll only).
+   - Mobile (<768px): stacked cards, bottom nav, bottom-sheet modals,
+     44px+ touch targets, 16px inputs (prevents iOS zoom), no page overflow.
+   ========================================================================== */
+
+/* ── Touch feedback everywhere (fast, visible tap response) ── */
+button,
+[role='button'],
+a,
+select,
+input[type='checkbox'],
+input[type='radio'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active,
+[role='button']:active {
+  opacity: 0.82;
+  transform: scale(0.99);
+}
+
+button,
+[role='button'] {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+/* ── Charts & images never overflow ── */
+svg,
+img,
+canvas,
+video {
+  max-width: 100%;
+}
+
+/* ══════════════════ TABLET (768–1024px) ══════════════════ */
+@media (max-width: 1024px) {
+  /* Tables scroll within their own wrapper (never the page) */
+  .tx-table-wrapper,
+  .am-table-wrapper,
+  .cm-table-wrapper,
+  .ln-table-wrapper,
+  .br-table-wrap,
+  .al-table-wrapper,
+  .al-table-wrap,
+  .um-table-wrap,
+  .st-table-wrap,
+  .rp-table-wrap,
+  .docs-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tx-table td,
+  .am-table td,
+  .cm-table td,
+  .ln-table td,
+  .br-table td,
+  .al-table td,
+  .um-table td,
+  .st-table td,
+  .rp-data-table td,
+  .rp-statement-table td,
+  .docs-table td {
+    padding: 10px 10px;
+  }
+
+  /* Denser page gutters */
+  .layout-content-container {
+    padding: 16px 16px 24px;
+  }
+
+  .al-filters,
+  .tx-filters,
+  .am-filters,
+  .cm-filters,
+  .ln-filters,
+  .br-filters,
+  .um-filter-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .al-filters > *,
+  .tx-filters > *,
+  .am-filters > *,
+  .cm-filters > *,
+  .ln-filters > *,
+  .um-filter-bar > * {
+    min-height: 44px;
+  }
+}
+
+/* ══════════════════ MOBILE (<768px) ══════════════════ */
+@media (max-width: 767px) {
+  /* ── Typography floors ── */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .navbar-page-title {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 46vw;
+  }
+
+  .st-tab-desc,
+  .notif-time,
+  .widget-last-updated,
+  .al-pagination-info,
+  .tx-pagination-info,
+  .am-pagination-info {
+    font-size: 12px !important;
+  }
+
+  /* ── Page shell: room for the bottom nav ── */
+  .layout-content-container {
+    padding: 14px 14px calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .layout-content-area {
+    scroll-padding-bottom: 90px;
+  }
+
+  .bankvision-app-footer,
+  .app-footer,
+  .bankvision-footer {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── Touch targets: 44px minimum, 8px+ spacing ── */
+  button,
+  .al-btn,
+  .tx-btn,
+  .am-btn,
+  .cm-btn,
+  .ln-btn,
+  .br-btn,
+  .um-action-btn,
+  .al-page-btn,
+  .st-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .al-btn-sm,
+  .am-btn-sm {
+    min-height: 40px;
+  }
+
+  button + button,
+  .al-btn + .al-btn,
+  .tx-btn + .tx-btn,
+  .am-btn + .am-btn {
+    margin-left: 8px;
+  }
+
+  /* ── Forms: single column, 48px inputs, 16px font (no iOS zoom) ── */
+  .st-form-row,
+  .tx-form-row,
+  .am-form-row,
+  .cm-form-row,
+  .ln-form-row,
+  .br-form-row,
+  .al-form-row,
+  .um-form-row {
+    grid-template-columns: 1fr !important;
+    display: grid;
+    gap: 12px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    min-height: 48px;
+  }
+
+  /* Native selects size to their longest <option>; clamp them so filter bars
+     never push wider than the viewport */
+  select {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  textarea {
+    min-height: 88px;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-height: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .st-form,
+  .tx-form,
+  .am-form,
+  .ln-form,
+  .cm-form,
+  .br-form,
+  .um-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Modals → full-width bottom sheets ── */
+  [class*='-modal-overlay'] {
+    align-items: flex-end !important;
+    padding: 0 !important;
+    z-index: 9000;
+  }
+
+  [class*='-modal-overlay'] > [class*='-modal'] {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 18px 18px 0 0 !important;
+    margin: 0 !important;
+    animation: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  [class*='-modal-overlay'] > [class*='-modal']::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border-subtle-hover, rgba(148, 163, 184, 0.5));
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  [class*='-modal-footer'] {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: var(--bg-surface, var(--slate-900));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  [class*='-modal-footer'] button {
+    flex: 1;
+    min-height: 48px;
+  }
+
+  /* Dashboard Add Widget / Widget Settings modals share the same treatment.
+     Their z-index stays untouched so the settings modal still opens above a
+     fullscreen widget (9999). */
+  .modal-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-backdrop > .glass-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0 !important;
+    animation: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .modal-backdrop > .glass-modal::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border-subtle-hover, rgba(148, 163, 184, 0.5));
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* Settings form scrolls; keep its footer pinned to the sheet bottom */
+  .settings-form .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: var(--bg-surface, var(--slate-900));
+    padding: 10px 0 2px;
+    margin: 0;
+  }
+
+  /* ── Tables → stacked cards ──
+     Covers the main list pages plus the settings login-history table,
+     report data/statement tables and the docs tables. */
+  .tx-table,
+  .am-table,
+  .cm-table,
+  .ln-table,
+  .br-table,
+  .al-table,
+  .um-table,
+  .st-table,
+  .rp-data-table,
+  .rp-statement-table,
+  .docs-table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    border: none;
+  }
+
+  .tx-table thead,
+  .am-table thead,
+  .cm-table thead,
+  .ln-table thead,
+  .br-table thead,
+  .al-table thead,
+  .um-table thead,
+  .st-table thead,
+  .rp-data-table thead,
+  .rp-statement-table thead,
+  .docs-table thead {
+    display: none;
+  }
+
+  .tx-table tbody,
+  .am-table tbody,
+  .cm-table tbody,
+  .ln-table tbody,
+  .br-table tbody,
+  .al-table tbody,
+  .um-table tbody,
+  .st-table tbody,
+  .rp-data-table tbody,
+  .rp-statement-table tbody,
+  .docs-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .tx-table tr,
+  .am-table tr,
+  .cm-table tr,
+  .ln-table tr,
+  .br-table tr,
+  .al-table tr,
+  .um-table tr,
+  .st-table tr,
+  .rp-data-table tr,
+  .rp-statement-table tr,
+  .docs-table tr {
+    display: block;
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    margin: 0 0 12px;
+    padding: 6px 0;
+    overflow: hidden;
+  }
+
+  .tx-table td,
+  .am-table td,
+  .cm-table td,
+  .ln-table td,
+  .br-table td,
+  .al-table td,
+  .um-table td,
+  .st-table td,
+  .rp-data-table td,
+  .rp-statement-table td,
+  .docs-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 14px;
+    border: none !important;
+    text-align: right;
+    min-height: 40px;
+    font-size: 14px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .tx-table td::before,
+  .am-table td::before,
+  .cm-table td::before,
+  .ln-table td::before,
+  .br-table td::before,
+  .al-table td::before,
+  .um-table td::before,
+  .st-table td::before,
+  .rp-data-table td::before,
+  .rp-statement-table td::before,
+  .docs-table td::before {
+    content: attr(data-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 50%;
+    overflow-wrap: break-word;
+  }
+
+  /* Cells without a label (loading/empty/section spans) render as plain blocks */
+  .tx-table td:not([data-label])::before,
+  .am-table td:not([data-label])::before,
+  .cm-table td:not([data-label])::before,
+  .ln-table td:not([data-label])::before,
+  .br-table td:not([data-label])::before,
+  .al-table td:not([data-label])::before,
+  .um-table td:not([data-label])::before,
+  .st-table td:not([data-label])::before,
+  .rp-data-table td:not([data-label])::before,
+  .rp-statement-table td:not([data-label])::before,
+  .docs-table td:not([data-label])::before {
+    display: none;
+  }
+
+  .tx-table td:not([data-label]),
+  .am-table td:not([data-label]),
+  .cm-table td:not([data-label]),
+  .ln-table td:not([data-label]),
+  .br-table td:not([data-label]),
+  .al-table td:not([data-label]),
+  .um-table td:not([data-label]),
+  .st-table td:not([data-label]),
+  .rp-data-table td:not([data-label]),
+  .rp-statement-table td:not([data-label]),
+  .docs-table td:not([data-label]) {
+    justify-content: center;
+  }
+
+  /* Primary identifier on top */
+  .tx-table td[data-label]:first-child,
+  .am-table td[data-label]:first-child,
+  .cm-table td[data-label]:first-child,
+  .ln-table td[data-label]:first-child,
+  .br-table td[data-label]:first-child,
+  .al-table td[data-label]:first-child,
+  .um-table td[data-label]:first-child,
+  .st-table td[data-label]:first-child,
+  .rp-data-table td[data-label]:first-child,
+  .rp-statement-table td[data-label]:first-child,
+  .docs-table td[data-label]:first-child {
+    padding-top: 14px;
+    font-weight: 700;
+  }
+
+  /* Actions pinned to the card bottom */
+  .tx-table td:last-child,
+  .am-table td:last-child,
+  .cm-table td:last-child,
+  .ln-table td:last-child,
+  .br-table td:last-child,
+  .al-table td:last-child,
+  .um-table td:last-child,
+  .st-table td:last-child,
+  .rp-data-table td:last-child,
+  .rp-statement-table td:last-child,
+  .docs-table td:last-child {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    border-top: 1px dashed var(--border-subtle) !important;
+    margin-top: 6px;
+    padding-top: 12px;
+    padding-bottom: 14px;
+  }
+
+  /* Wrappers that contained horizontal scroll on desktop release their
+     stacked-card content — no scrolling left inside cards on mobile */
+  .st-table-wrap,
+  .rp-table-wrap,
+  .docs-table-wrapper {
+    overflow-x: visible;
+  }
+
+  /* Docs code samples wrap vertically instead of scrolling inside the card */
+  .code-pre {
+    white-space: pre-wrap;
+    overflow-x: hidden;
+  }
+
+  /* Financial statement section/total rows use colSpan cells — render them
+     as full-width heading rows, restore the desktop indent for detail rows */
+  .rp-statement-table td[colspan]::before {
+    display: none;
+  }
+
+  .rp-statement-table td[colspan] {
+    justify-content: flex-start;
+    font-weight: 700;
+    background: rgba(201, 168, 106, 0.06);
+  }
+
+  .rp-statement-table tr.rp-statement-row-indent td:first-child,
+  .rp-statement-table tr.rp-statement-row-total td:first-child {
+    padding-left: 14px;
+  }
+
+  /* ── Filter bars: wrap, full-width selects ── */
+  .al-filters,
+  .tx-filters,
+  .am-filters,
+  .cm-filters,
+  .ln-filters,
+  .br-filters,
+  .um-filter-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .al-filters > select,
+  .tx-filters > select,
+  .am-filters > select,
+  .cm-filters > select,
+  .ln-filters > select,
+  .br-filters > select,
+  .um-filter-bar > select {
+    flex: 1 1 44%;
+    min-width: 0;
+    min-height: 48px;
+  }
+
+  .al-search-wrap,
+  .tx-search-wrap,
+  .am-search-wrap,
+  .cm-search-wrap,
+  .ln-search-wrap,
+  .br-search-wrap {
+    flex: 1 1 100%;
+  }
+
+  /* ── Stat card grids: 2-up on phones ── */
+  .al-stats-grid,
+  .tx-stats-grid,
+  .am-stats-grid,
+  .cm-stats-grid,
+  .ln-stats-grid,
+  .br-stats-grid,
+  .rp-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+
+  /* ── Page headers stack ── */
+  .al-header,
+  .tx-page-header,
+  .am-page-header,
+  .cm-page-header,
+  .ln-page-header,
+  .br-page-header,
+  .st-header,
+  .um-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .al-header-actions,
+  .st-header-user,
+  .um-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* ── Settings tab navigation: horizontal scroll chips ── */
+  .st-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .st-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .st-tab {
+    flex-shrink: 0;
+  }
+
+  .st-tab-desc {
+    display: none;
+  }
+
+  /* ── Dashboard header stacks (grid layouts are handled by RGL breakpoints) ── */
+  .dashboard-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .dashboard-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .dashboard-header-actions .dashboard-btn {
+    flex: 1;
+  }
+
+  /* ── Detail pages: info grids collapse ── */
+  .tx-info-grid,
+  .am-info-grid,
+  .cm-info-grid,
+  .ln-info-grid,
+  .br-info-grid,
+  .al-info-grid,
+  [class*='-detail-grid'] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Footer stacks ── */
+  .bankvision-app-footer,
+  .app-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+/* ── Bottom navigation (mobile only; hidden ≥768px) ── */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 850;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    background: var(--navbar-bg, rgba(9, 13, 22, 0.92));
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--border-subtle);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 52px;
+    padding: 4px 2px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--primary-400);
+    background: rgba(201, 168, 106, 0.12);
+  }
+
+  .bottom-nav-item:active {
+    background: rgba(201, 168, 106, 0.2);
+  }
+
+  /* ── Sidebar drawer: reserve bottom space so the bottom nav never covers
+     the user-profile/logout footer. The nav overlaps only this empty
+     padding strip. ── */
+  .bankvision-sidebar {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bankvision-sidebar .sidebar-nav {
+    /* keep the nav list's own scroll area above the reserved strip */
+    padding-bottom: 12px;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Landscape phones: keep content usable (bottom nav hidden → no reservation) */
+@media (max-width: 926px) and (orientation: landscape) {
+  .layout-content-container {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .bankvision-sidebar {
+    padding-bottom: 0;
+  }
+}
+
+/* ── Mobile sort controls (hidden on desktop) ── */
+.mobile-sort {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-sort {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .mobile-sort-field {
+    flex: 1;
+    min-height: 48px;
+  }
+
+  .mobile-sort-dir {
+    min-height: 48px;
+    min-width: 96px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+}
+
+/* ── Navbar shrink fixes (overflow found by width-sweep) ── */
+@media (max-width: 767px) {
+  .bankvision-navbar {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .navbar-left {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .navbar-page-info {
+    overflow: hidden;
+  }
+
+  .navbar-page-title {
+    max-width: 100%;
+  }
+
+  .navbar-right {
+    flex-shrink: 0;
+    gap: 2px;
+  }
+
+  .navbar-action-btn,
+  .navbar-user-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .navbar-user-details {
+    display: none !important;
+  }
+
+  .search-shortcut-badge {
+    display: none;
+  }
+}
+
+/* Alerts/KYC/AML tab strips: horizontal scroll instead of overflow */
+@media (max-width: 767px) {
+  .al-nav-tabs,
+  .al-tabs,
+  .rp-tabs,
+  [class*='alert-nav'] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .al-nav-tabs::-webkit-scrollbar,
+  .al-tabs::-webkit-scrollbar,
+  .rp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .al-tab,
+  .rp-tab,
+  .rp-sub-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+
+  /* Transactions date range: from/to stack vertically */
+  .tx-date-wrap {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tx-date-wrap > span {
+    display: none;
+  }
+
+  .tx-date-wrap > input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* ── Tablet (768–1024px): show priority columns only ──
+   Non-essential columns are hidden; the full table remains on desktop. */
+@media (max-width: 1024px) and (min-width: 768px) {
+  /* Transactions: hide Channel */
+  .tx-table th:nth-child(6),
+  .tx-table td:nth-child(6) { display: none; }
+
+  /* Customers: hide Branch */
+  .cm-table th:nth-child(7),
+  .cm-table td:nth-child(7) { display: none; }
+
+  /* Accounts: hide Currency (fixed TND) */
+  .am-table th:nth-child(3),
+  .am-table td:nth-child(3) { display: none; }
+
+  /* Loans: hide Rate */
+  .ln-table th:nth-child(6),
+  .ln-table td:nth-child(6) { display: none; }
+
+  /* Alerts: hide Assigned To */
+  .al-table th:nth-child(6),
+  .al-table td:nth-child(6) { display: none; }
+
+  /* KYC queue: hide Registration */
+  .al-table th:nth-child(6),
+  .al-table td:nth-child(6) { display: none; }
+
+  /* Users: hide Joined */
+  .um-table th:nth-child(7),
+  .um-table td:nth-child(7) { display: none; }
+
+  /* Branches: hide Phone */
+  .br-table th:nth-child(4),
+  .br-table td:nth-child(4) { display: none; }
+
+  /* Audit: hide Record ID + IP.
+     Scoped to .al-page-audit — alerts/KYC/AML share the .al-table class and
+     must keep their own (6th) column visible. */
+  .al-page-audit .al-table th:nth-child(5),
+  .al-page-audit .al-table td:nth-child(5),
+  .al-page-audit .al-table th:nth-child(6),
+  .al-page-audit .al-table td:nth-child(6) { display: none; }
+}
+
+/* ── Motion pass: bottom nav active pop ──────────────────────────────── */
+.bottom-nav-item.active svg,
+.bottom-nav-item.active[class*="icon"] {
+  animation: stampPress 240ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav-item.active svg { animation: none; }
+}
