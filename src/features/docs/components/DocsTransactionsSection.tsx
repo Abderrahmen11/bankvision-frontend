@@ -13,7 +13,7 @@ export const DocsTransactionsSection: React.FC = () => {
       <div className="code-block-container">
         <div className="code-block-header">
           <Terminal size={14} />
-          <span>POST /api/transactions — Sample Request</span>
+          <span>POST /api/transactions - Sample Request</span>
         </div>
         <pre className="code-pre">
 {`{
