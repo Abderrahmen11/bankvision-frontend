@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { showToast, useAuth } from '@/shared/hooks'
+import { toAmountNumber } from '@/shared/utils'
+import React, { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -14,11 +18,9 @@ import {
   DollarSign,
   ShieldCheck,
 } from 'lucide-react'
-import { transactionsApi } from '@/api/transactions'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Transaction } from '@/types/transaction'
-import type { PaginationMeta } from '@/types/api'
+import { transactionsApi } from '@/features/transactions/api/transactions'
+import type { Transaction } from '@/features/transactions/types'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   TX_TYPE_CONFIG,
   TX_STATUS_CONFIG,
@@ -32,8 +34,10 @@ import {
   canRecordTransaction,
   getChannelLabel,
   exportToCSV,
-} from './transactionHelpers'
-import { RecordTransactionModal } from './modals/RecordTransactionModal'
+} from '../transactionHelpers'
+import { MobileSortSelect } from '@/shared/components/MobileSortSelect'
+
+import { RecordTransactionModal } from '../modals/RecordTransactionModal'
 import './TransactionManagement.css'
 
 export const TransactionListPage: React.FC = () => {
@@ -48,10 +52,9 @@ export const TransactionListPage: React.FC = () => {
   const isCompliance = role === 'compliance'
 
   // Data
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [meta, setMeta] = useState<PaginationMeta | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [confirm, setConfirm] = useState<{ title: string; message: string; confirmLabel: string; danger: boolean; run: () => Promise<void> } | null>(null)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -67,11 +70,11 @@ export const TransactionListPage: React.FC = () => {
   // Modals
   const [showRecordModal, setShowRecordModal] = useState(false)
 
-  // Fetch transactions
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await transactionsApi.list({
+  // List query - filters/sort/page are part of the key (cached 60s)
+  const listQuery = useQuery({
+    queryKey: ['transactions', 'list', { search: search.trim() || undefined, typeFilter, statusFilter, channelFilter, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, sortBy, sortDir, page }],
+    queryFn: () =>
+      transactionsApi.list({
         search: search.trim() || undefined,
         transaction_type: typeFilter || undefined,
         status: statusFilter || undefined,
@@ -82,20 +85,41 @@ export const TransactionListPage: React.FC = () => {
         sort_direction: sortDir,
         page,
         per_page: 15,
-      })
-      setTransactions(res.data || [])
-      setMeta(res.meta as PaginationMeta)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch transactions.'
-      showToast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, typeFilter, statusFilter, channelFilter, dateFrom, dateTo, sortBy, sortDir, page])
+      }),
+  })
+
+  const transactions = listQuery.data?.data ?? []
+  const meta = (listQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = listQuery.isFetching
+  const listError = listQuery.error as Error | null
+
+  // Server-side KPI totals (status facet counts over the same filters —
+  // per_page 1, only meta.total is read). The API has no aggregate or
+  // amount filter, so volume/high-value remain page-scoped and labeled so.
+  const kpiBaseParams = {
+    search: search.trim() || undefined,
+    transaction_type: typeFilter || undefined,
+    channel: channelFilter || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+  }
+  const completedTotalQuery = useQuery({
+    queryKey: ['transactions', 'kpi-completed', kpiBaseParams],
+    queryFn: () => transactionsApi.list({ ...kpiBaseParams, status: 'completed', per_page: 1 }),
+  })
+  const flaggedTotalQuery = useQuery({
+    queryKey: ['transactions', 'kpi-flagged', kpiBaseParams],
+    queryFn: () => transactionsApi.list({ ...kpiBaseParams, status: 'flagged', per_page: 1 }),
+  })
 
   useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
+    if (listError) showToast.error(listError.message || 'Failed to fetch transactions.')
+  }, [listError])
+
+  const refreshList = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  }
 
   const handleResetFilters = () => {
     setSearch('')
@@ -108,43 +132,52 @@ export const TransactionListPage: React.FC = () => {
   }
 
   // Quick Actions: Approve
-  const handleApprove = async (tx: Transaction, e: React.MouseEvent) => {
+  const handleApprove = (tx: Transaction, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!window.confirm(`Are you sure you want to approve transaction ${tx.transaction_number}?`)) {
-      return
-    }
-    setActionLoadingId(tx.id)
-    try {
-      await transactionsApi.approve(tx.id)
-      showToast.success(`Transaction ${tx.transaction_number} approved!`)
-      fetchTransactions()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to approve transaction.'
-      showToast.error(msg)
-    } finally {
-      setActionLoadingId(null)
-    }
+    setConfirm({
+      title: 'Approve transaction',
+      message: `Are you sure you want to approve transaction ${tx.transaction_number}?`,
+      confirmLabel: 'Approve',
+      danger: false,
+      run: async () => {
+        setActionLoadingId(tx.id)
+        try {
+          await transactionsApi.approve(tx.id)
+          showToast.success(`Transaction ${tx.transaction_number} approved!`)
+          refreshList()
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to approve transaction.'
+          showToast.error(msg)
+        } finally {
+          setActionLoadingId(null)
+        }
+      },
+    })
   }
 
   // Quick Actions: Flag
-  const handleFlag = async (tx: Transaction, e: React.MouseEvent) => {
+  const handleFlag = (tx: Transaction, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!window.confirm(`Flag transaction ${tx.transaction_number} as suspicious for compliance review?`)) {
-      return
-    }
-    setActionLoadingId(tx.id)
-    try {
-      await transactionsApi.flag(tx.id)
-      showToast.success(`Transaction ${tx.transaction_number} flagged for review.`)
-      fetchTransactions()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to flag transaction.'
-      showToast.error(msg)
-    } finally {
-      setActionLoadingId(null)
-    }
+    setConfirm({
+      title: 'Flag transaction',
+      message: `Flag transaction ${tx.transaction_number} as suspicious for compliance review?`,
+      confirmLabel: 'Flag',
+      danger: true,
+      run: async () => {
+        setActionLoadingId(tx.id)
+        try {
+          await transactionsApi.flag(tx.id)
+          showToast.success(`Transaction ${tx.transaction_number} flagged for review.`)
+          refreshList()
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to flag transaction.'
+          showToast.error(msg)
+        } finally {
+          setActionLoadingId(null)
+        }
+      },
+    })
   }
-
   // Export CSV
   const handleExportCSV = () => {
     if (!transactions.length) {
@@ -179,13 +212,18 @@ export const TransactionListPage: React.FC = () => {
     setPage(1)
   }
 
-  // KPI Calculations
-  const totalCompleted = transactions.filter((t) => t.status === 'completed').length
-  const totalFlagged = transactions.filter((t) => t.status === 'flagged').length
+  // KPI Calculations — completed/flagged are server totals; volume and
+  // high-value are computed from the current page only (no API aggregate).
+  const totalCompleted =
+    (completedTotalQuery.data?.meta as PaginationMeta | null)?.total ??
+    transactions.filter((t) => t.status === 'completed').length
+  const totalFlagged =
+    (flaggedTotalQuery.data?.meta as PaginationMeta | null)?.total ??
+    transactions.filter((t) => t.status === 'flagged').length
   const highValueCount = transactions.filter((t) => isHighValue(t.amount)).length
   const totalVolume = transactions
     .filter((t) => t.status === 'completed')
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+    .reduce((sum, t) => sum + toAmountNumber(t.amount), 0)
 
   return (
     <div className="tx-page">
@@ -203,7 +241,7 @@ export const TransactionListPage: React.FC = () => {
           </button>
           <button
             className="tx-btn tx-btn-ghost"
-            onClick={fetchTransactions}
+            onClick={() => listQuery.refetch()}
             title="Refresh transactions"
             disabled={loading}
           >
@@ -243,13 +281,13 @@ export const TransactionListPage: React.FC = () => {
 
         <div className="tx-stat-card">
           <div className="tx-stat-header">
-            <span className="tx-stat-label">Completed Volume</span>
+            <span className="tx-stat-label">Completed Volume (Page)</span>
             <div className="tx-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
               <DollarSign size={16} />
             </div>
           </div>
           <div className="tx-stat-value">{formatAmountCompact(totalVolume)}</div>
-          <div className="tx-stat-sub">{totalCompleted} successful transactions</div>
+          <div className="tx-stat-sub">Sum of listed page · {totalCompleted} completed in scope</div>
         </div>
 
         <div className="tx-stat-card">
@@ -267,7 +305,7 @@ export const TransactionListPage: React.FC = () => {
 
         <div className="tx-stat-card">
           <div className="tx-stat-header">
-            <span className="tx-stat-label">High-Value (≥ $10K)</span>
+            <span className="tx-stat-label">High-Value (≥ 10K, Page)</span>
             <div className="tx-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
               <ShieldCheck size={16} />
             </div>
@@ -275,7 +313,7 @@ export const TransactionListPage: React.FC = () => {
           <div className="tx-stat-value" style={{ color: highValueCount > 0 ? '#f59e0b' : undefined }}>
             {highValueCount}
           </div>
-          <div className="tx-stat-sub">Requires compliance tracking</div>
+          <div className="tx-stat-sub">On listed page — compliance threshold</div>
         </div>
       </div>
 
