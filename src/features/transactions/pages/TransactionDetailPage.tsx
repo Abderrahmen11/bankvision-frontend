@@ -1,4 +1,6 @@
+import { showToast, useAuth } from '@/shared/hooks'
 import React, { useState, useEffect, useCallback } from 'react'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -11,10 +13,8 @@ import {
   DollarSign,
   ExternalLink,
 } from 'lucide-react'
-import { transactionsApi } from '@/api/transactions'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { Transaction } from '@/types/transaction'
+import { transactionsApi } from '@/features/transactions/api/transactions'
+import type { Transaction } from '@/features/transactions/types'
 import {
   TX_TYPE_CONFIG,
   TX_STATUS_CONFIG,
@@ -25,7 +25,7 @@ import {
   canApproveTransaction,
   canFlagTransaction,
   getChannelLabel,
-} from './transactionHelpers'
+} from '../transactionHelpers'
 import './TransactionManagement.css'
 
 export const TransactionDetailPage: React.FC = () => {
@@ -57,39 +57,56 @@ export const TransactionDetailPage: React.FC = () => {
   }, [id])
 
   useEffect(() => {
-    fetchTx()
+    const timer = setTimeout(() => { void fetchTx() }, 0)
+    return () => clearTimeout(timer)
   }, [fetchTx])
 
-  const handleApprove = async () => {
+  const [confirm, setConfirm] = useState<{ title: string; message: string; confirmLabel: string; danger: boolean; run: () => Promise<void> } | null>(null)
+
+  const handleApprove = () => {
     if (!tx) return
-    if (!window.confirm(`Approve transaction ${tx.transaction_number}?`)) return
-    setActionLoading(true)
-    try {
-      const updated = await transactionsApi.approve(tx.id)
-      setTx(updated)
-      showToast.success('Transaction approved successfully!')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to approve transaction.'
-      showToast.error(msg)
-    } finally {
-      setActionLoading(false)
-    }
+    setConfirm({
+      title: 'Approve transaction',
+      message: `Are you sure you want to approve transaction ${tx.transaction_number}?`,
+      confirmLabel: 'Approve',
+      danger: false,
+      run: async () => {
+        setActionLoading(true)
+        try {
+          const updated = await transactionsApi.approve(tx.id)
+          setTx(updated)
+          showToast.success('Transaction approved successfully!')
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to approve transaction.'
+          showToast.error(msg)
+        } finally {
+          setActionLoading(false)
+        }
+      },
+    })
   }
 
-  const handleFlag = async () => {
+  const handleFlag = () => {
     if (!tx) return
-    if (!window.confirm(`Flag transaction ${tx.transaction_number} as suspicious for compliance review?`)) return
-    setActionLoading(true)
-    try {
-      const updated = await transactionsApi.flag(tx.id)
-      setTx(updated)
-      showToast.success('Transaction flagged for review.')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to flag transaction.'
-      showToast.error(msg)
-    } finally {
-      setActionLoading(false)
-    }
+    setConfirm({
+      title: 'Flag transaction',
+      message: `Flag transaction ${tx.transaction_number} as suspicious for compliance review?`,
+      confirmLabel: 'Flag',
+      danger: true,
+      run: async () => {
+        setActionLoading(true)
+        try {
+          const updated = await transactionsApi.flag(tx.id)
+          setTx(updated)
+          showToast.success('Transaction flagged for review.')
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to flag transaction.'
+          showToast.error(msg)
+        } finally {
+          setActionLoading(false)
+        }
+      },
+    })
   }
 
   if (loading) {
@@ -122,10 +139,13 @@ export const TransactionDetailPage: React.FC = () => {
   const highVal = isHighValue(Number(tx.amount))
   const isPending = tx.status === 'pending'
   const isFlagged = tx.status === 'flagged'
+  const isFailed = tx.status === 'failed'
+  const canFlag = !isFlagged && !isFailed
 
   return (
-    <div className="tx-page">
-      {/* Top back button */}
+    <div className="tx-page-wrap">
+      <div className="tx-page">
+        {/* Top back button */}
       <div>
         <button className="tx-back-btn" onClick={() => navigate('/transactions')}>
           <ArrowLeft size={16} /> Back to Transactions
@@ -191,7 +211,7 @@ export const TransactionDetailPage: React.FC = () => {
           )}
 
           {/* Flag Button */}
-          {allowFlag && !isFlagged && (
+          {allowFlag && canFlag && (
             <button
               className="tx-btn tx-btn-danger"
               onClick={handleFlag}
@@ -247,7 +267,7 @@ export const TransactionDetailPage: React.FC = () => {
 
           <div className="tx-info-row">
             <span className="tx-info-label">Currency</span>
-            <span className="tx-info-value">{tx.currency || 'USD'}</span>
+            <span className="tx-info-value">{tx.currency ?? 'TND'}</span>
           </div>
 
           <div className="tx-info-row">
@@ -401,7 +421,7 @@ export const TransactionDetailPage: React.FC = () => {
           <div className="tx-info-row">
             <span className="tx-info-label">Approved At</span>
             <span className="tx-info-value">
-              {tx.approved_at ? formatDateTime(tx.approved_at) : '—'}
+              {tx.approved_at ? formatDateTime(tx.approved_at) : '-'}
             </span>
           </div>
 
@@ -415,6 +435,17 @@ export const TransactionDetailPage: React.FC = () => {
             <span className="tx-info-value">{formatDateTime(tx.updated_at)}</span>
           </div>
         </div>
+      </div>
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onConfirm={() => { confirm?.run() }}
+        onCancel={() => setConfirm(null)}
+      />
       </div>
     </div>
   )
