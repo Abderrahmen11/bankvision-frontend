@@ -1,27 +1,40 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { showToast, useAuth } from '@/shared/hooks'
+import React, { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, UserPlus, Download, RefreshCw, Eye, Pencil,
   Trash2, KeyRound, Users, ChevronUp, ChevronDown,
   ShieldAlert,
 } from 'lucide-react'
-import { usersApi } from '@/api/users'
-import { branchesApi } from '@/api/branches'
-import { useAuth } from '@/hooks/useAuth'
-import { showToast } from '@/hooks/useToast'
-import type { User, Branch } from '@/types/user'
-import type { PaginationMeta } from '@/types/api'
+import { usersApi } from '@/features/users/api/users'
+import { branchesApi } from '@/features/branches/api/branches'
+import type { User } from '@/shared/types/user'
+import type { PaginationMeta } from '@/shared/types/api'
 import {
   ROLE_LABELS, ROLE_COLORS, getAvatarColor, getInitials,
   formatDateTime, exportToCSV,
-} from './userHelpers'
-import { AddUserModal } from './modals/AddUserModal'
-import { EditUserModal } from './modals/EditUserModal'
-import { DeleteUserModal } from './modals/DeleteUserModal'
-import { ResetPasswordModal } from './modals/ResetPasswordModal'
+} from '../userHelpers'
+import { MobileSortSelect } from '@/shared/components/MobileSortSelect'
+
+import { AddUserModal } from '../modals/AddUserModal'
+import { EditUserModal } from '../modals/EditUserModal'
+import { DeleteUserModal } from '../modals/DeleteUserModal'
+import { ResetPasswordModal } from '../modals/ResetPasswordModal'
 import './UserManagement.css'
 
 type SortField = 'name' | 'role' | 'created_at' | 'last_login_at'
+
+const SortIcon: React.FC<{ field: SortField; sortBy: SortField; sortDir: 'asc' | 'desc' }> = ({
+  field,
+  sortBy,
+  sortDir,
+}) => {
+  if (sortBy !== field) return <ChevronUp size={12} style={{ opacity: 0.3 }} />
+  return sortDir === 'asc'
+    ? <ChevronUp size={12} style={{ color: 'var(--primary-400)' }} />
+    : <ChevronDown size={12} style={{ color: 'var(--primary-400)' }} />
+}
 
 export const UserListPage: React.FC = () => {
   const navigate = useNavigate()
@@ -31,10 +44,8 @@ export const UserListPage: React.FC = () => {
   const canRead   = isAdmin || isManager || isCompliance || isAnalyst || isAuditor
 
   // State
-  const [users,       setUsers]       = useState<User[]>([])
-  const [meta,        setMeta]        = useState<PaginationMeta | null>(null)
-  const [branches,    setBranches]    = useState<Branch[]>([])
-  const [loading,     setLoading]     = useState(true)
+  const queryClient = useQueryClient()
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [search,      setSearch]      = useState('')
   const [roleFilter,  setRoleFilter]  = useState('')
   const [statusFilter,setStatusFilter]= useState('')
@@ -50,50 +61,49 @@ export const UserListPage: React.FC = () => {
   const [resetTarget,     setResetTarget]     = useState<User | null>(null)
 
   // Load branches for filter dropdown
-  useEffect(() => {
-    branchesApi.list({ per_page: 100 })
-      .then((res) => setBranches(res.data))
-      .catch(() => {})
-  }, [])
+  // Load branches
+  const branchesQuery = useQuery({
+    queryKey: ['branches', 'options'],
+    queryFn: () => branchesApi.list({ per_page: 100 }),
+  })
+  const branches = branchesQuery.data?.data ?? []
 
-  // Fetch users
-  const fetchUsers = useCallback(async () => {
-    setLoading(true)
-    try {
+  // List query - filters/sort/page are part of the key (cached 60s)
+  const listQuery = useQuery({
+    queryKey: ['users', 'list', { page, per_page: 15, sortBy, sortDir, search: debouncedSearch || undefined, roleFilter: roleFilter || undefined, statusFilter: statusFilter || undefined, branchFilter: branchFilter || undefined }],
+    queryFn: () => {
       const params: Record<string, unknown> = {
         page,
         per_page: 15,
         sort_by: sortBy,
         sort_direction: sortDir,
       }
-      if (search)       params.search    = search
-      if (roleFilter)   params.role      = roleFilter
-      if (statusFilter) params.status    = statusFilter
-      if (branchFilter) params.branch_id = branchFilter
+      if (debouncedSearch) params.search       = debouncedSearch
+      if (roleFilter)      params.role         = roleFilter
+      if (statusFilter)    params.status       = statusFilter
+      if (branchFilter)    params.branch_id    = branchFilter
 
-      const res = await usersApi.list(params)
-      setUsers(res.data)
-      if (res.meta) setMeta(res.meta)
-    } catch (err: unknown) {
-      showToast.error(err instanceof Error ? err.message : 'Failed to load users.')
-    } finally {
-      setLoading(false)
-    }
-  }, [page, sortBy, sortDir, search, roleFilter, statusFilter, branchFilter])
+      return usersApi.list(params)
+    },
+  })
+
+  const users = listQuery.data?.data ?? []
+  const meta = (listQuery.data?.meta as PaginationMeta | null) ?? null
+  const loading = listQuery.isFetching
+  const listError = listQuery.error as Error | null
+
+  useEffect(() => {
+    if (listError) showToast.error(listError.message || 'Failed to load users.')
+  }, [listError])
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => { setPage(1); fetchUsers() }, 400)
+    const timer = setTimeout(() => { setDebouncedSearch(search) }, 400)
     return () => clearTimeout(timer)
   }, [search])
 
-  useEffect(() => {
-    setPage(1); fetchUsers()
-  }, [roleFilter, statusFilter, branchFilter, sortBy, sortDir])
-
-  useEffect(() => { fetchUsers() }, [page])
-
   const handleSort = (field: SortField) => {
+    setPage(1)
     if (sortBy === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setSortBy(field); setSortDir('asc') }
   }
@@ -112,13 +122,6 @@ export const UserListPage: React.FC = () => {
     }))
     exportToCSV(rows, `bankvision-staff-${new Date().toISOString().slice(0, 10)}`)
     showToast.success('Export started!')
-  }
-
-  const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
-    if (sortBy !== field) return <ChevronUp size={12} style={{ opacity: 0.3 }} />
-    return sortDir === 'asc'
-      ? <ChevronUp size={12} style={{ color: 'var(--primary-400)' }} />
-      : <ChevronDown size={12} style={{ color: 'var(--primary-400)' }} />
   }
 
   if (!canRead) {
@@ -140,13 +143,13 @@ export const UserListPage: React.FC = () => {
         <div className="um-page-header-left">
           <h1>User Management</h1>
           <p>
-            {isAdmin ? 'Full staff management — create, edit, assign roles, and more.' :
+            {isAdmin ? 'Full staff management - create, edit, assign roles, and more.' :
              isManager ? 'View your branch staff (read-only).' :
-             'All bank staff — read-only view.'}
+             'All bank staff - read-only view.'}
           </p>
         </div>
         <div className="um-header-actions">
-          <button className="um-btn um-btn-ghost" onClick={fetchUsers} title="Refresh">
+          <button className="um-btn um-btn-ghost" onClick={() => listQuery.refetch()} title="Refresh">
             <RefreshCw size={15} />
             Refresh
           </button>
@@ -181,7 +184,7 @@ export const UserListPage: React.FC = () => {
         <div className="um-stat-card">
           <div className="um-stat-label">TOTAL (THIS PAGE)</div>
           <div className="um-stat-value">{users.length}</div>
-          <div className="um-stat-sub">of {meta?.total ?? '—'} total</div>
+          <div className="um-stat-sub">of {meta?.total ?? '-'} total</div>
         </div>
       </div>
 
@@ -200,7 +203,7 @@ export const UserListPage: React.FC = () => {
         <select
           className="um-select"
           value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
+          onChange={(e) => { setRoleFilter(e.target.value); setPage(1) }}
         >
           <option value="">All Roles</option>
           {(['admin','manager','compliance','analyst','csr','auditor'] as const).map((r) => (
@@ -211,7 +214,7 @@ export const UserListPage: React.FC = () => {
         <select
           className="um-select"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
         >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
@@ -223,7 +226,7 @@ export const UserListPage: React.FC = () => {
           <select
             className="um-select"
             value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
+            onChange={(e) => { setBranchFilter(e.target.value); setPage(1) }}
           >
             <option value="">All Branches</option>
             {branches.map((b) => (
@@ -234,24 +237,38 @@ export const UserListPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="um-table-card">
+            {/* Mobile sort controls (hidden on desktop) */}
+      <MobileSortSelect
+        value={sortBy}
+        dir={sortDir}
+        options={[
+          { value: 'name', label: 'Sort by Name' },
+          { value: 'role', label: 'Sort by Role' },
+          { value: 'last_login_at', label: 'Sort by Last Login' },
+          { value: 'created_at', label: 'Sort by Joined' },
+        ]}
+        onField={(v) => { handleSort(v as typeof sortBy) }}
+        onDir={(dir) => { setSortDir(dir); setPage(1) }}
+      />
+
+<div className="um-table-card">
         <div className="um-table-wrap">
           <table className="um-table">
             <thead>
               <tr>
                 <th className="sortable" onClick={() => handleSort('name')}>
-                  Staff Member <SortIcon field="name" />
+                  Staff Member <SortIcon field="name" sortBy={sortBy} sortDir={sortDir} />
                 </th>
                 <th className="sortable" onClick={() => handleSort('role')}>
-                  Role <SortIcon field="role" />
+                  Role <SortIcon field="role" sortBy={sortBy} sortDir={sortDir} />
                 </th>
                 <th>Branch</th>
                 <th>Status</th>
                 <th className="sortable" onClick={() => handleSort('last_login_at')}>
-                  Last Login <SortIcon field="last_login_at" />
+                  Last Login <SortIcon field="last_login_at" sortBy={sortBy} sortDir={sortDir} />
                 </th>
                 <th className="sortable" onClick={() => handleSort('created_at')}>
-                  Joined <SortIcon field="created_at" />
+                  Joined <SortIcon field="created_at" sortBy={sortBy} sortDir={sortDir} />
                 </th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -311,7 +328,7 @@ export const UserListPage: React.FC = () => {
                         </span>
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>
-                        {u.branch?.branch_name ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        {u.branch?.branch_name ?? <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td>
                         <span className={`um-badge um-badge-${u.status}`}>
@@ -413,7 +430,7 @@ export const UserListPage: React.FC = () => {
         <AddUserModal
           branches={branches}
           onClose={() => setShowAdd(false)}
-          onSuccess={() => { setShowAdd(false); fetchUsers() }}
+          onSuccess={() => { setShowAdd(false); queryClient.invalidateQueries({ queryKey: ['users'] }) }}
         />
       )}
       {editTarget && (
@@ -421,14 +438,14 @@ export const UserListPage: React.FC = () => {
           user={editTarget}
           branches={branches}
           onClose={() => setEditTarget(null)}
-          onSuccess={() => { setEditTarget(null); fetchUsers() }}
+          onSuccess={() => { setEditTarget(null); queryClient.invalidateQueries({ queryKey: ['users'] }) }}
         />
       )}
       {deleteTarget && (
         <DeleteUserModal
           user={deleteTarget}
           onClose={() => setDeleteTarget(null)}
-          onSuccess={() => { setDeleteTarget(null); fetchUsers() }}
+          onSuccess={() => { setDeleteTarget(null); queryClient.invalidateQueries({ queryKey: ['users'] }) }}
         />
       )}
       {resetTarget && (
