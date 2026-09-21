@@ -449,3 +449,125 @@
     border-left: 1px solid var(--border-subtle);
   }
 }
+
+/* ── Light Mode Overrides for Login Page ────────────────────────────── */
+:root[data-theme='light'] .login-page-root {
+  background-color: #f1f5f9;
+  background-image: radial-gradient(900px 480px at 50% -10%, rgba(201, 168, 106, 0.12), transparent 60%);
+}
+
+:root[data-theme='light'] .login-content-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 0 25px rgba(201, 168, 106, 0.12) !important;
+}
+
+:root[data-theme='light'] .login-title {
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .login-subtitle {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .form-label {
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .input-wrapper .input-icon {
+  color: #64748b !important;
+}
+
+:root[data-theme='light'] .login-page-root .form-input,
+:root[data-theme='light'] .login-form .form-input,
+:root[data-theme='light'] .form-input {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .login-page-root .form-input::placeholder,
+:root[data-theme='light'] .login-form .form-input::placeholder,
+:root[data-theme='light'] .form-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] .login-page-root .form-input:focus,
+:root[data-theme='light'] .login-form .form-input:focus,
+:root[data-theme='light'] .form-input:focus {
+  background: #ffffff !important;
+  border-color: var(--primary-500) !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.25) !important;
+}
+
+:root[data-theme='light'] .quick-roles-container {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+:root[data-theme='light'] .quick-roles-title {
+  color: #64748b !important;
+}
+
+:root[data-theme='light'] .role-pill {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .role-pill:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] .role-pill.active {
+  background: #ffffff !important;
+  box-shadow: 0 0 10px rgba(201, 168, 106, 0.25) !important;
+}
+
+:root[data-theme='light'] .login-back-btn,
+:root[data-theme='light'] .login-theme-toggle {
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+:root[data-theme='light'] .login-back-btn:hover,
+:root[data-theme='light'] .login-theme-toggle:hover {
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] .login-footer-security {
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+:root[data-theme='light'] .login-back-to-credentials {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .login-back-to-credentials:hover {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+:root[data-theme='light'] .login-brand-panel {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+:root[data-theme='light'] .login-brand-statement {
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .login-brand-roles li span:last-child {
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .login-brand-roles li {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
