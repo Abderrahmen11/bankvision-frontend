@@ -1468,39 +1468,39 @@
   overflow-y: auto;
 }
 
-.form-group {
+.settings-form .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
-.form-label {
+.settings-form .form-label {
   font-size: 0.78125rem;
   font-weight: 500;
-  color: var(--slate-300);
+  color: var(--text-secondary);
 }
 
-.form-input,
-.form-select {
+.settings-form .form-input,
+.settings-form .form-select {
   background: var(--bg-row-hover);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 0.55rem 0.75rem;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 0.8125rem;
   outline: none;
   transition: border-color 0.2s;
 }
 
-.form-input:focus,
-.form-select:focus {
+.settings-form .form-input:focus,
+.settings-form .form-select:focus {
   border-color: var(--primary-500);
   box-shadow: 0 0 0 2px rgba(201, 168, 106, 0.2);
 }
 
-.form-select option {
-  background: var(--slate-900);
-  color: #ffffff;
+.settings-form .form-select option {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
 }
 
 .radio-pills-row {
